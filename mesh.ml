@@ -1,7 +1,8 @@
 (* Couche de neurones inter-connectés selon le principe du 
  * réseau de Hopfield : matrice symétrique, diagonale nulle *)
 
-open Matrix
+open MatrixHopfield
+open Primitives
 
 class mesh _n _func =
 object (s)
@@ -11,7 +12,7 @@ object (s)
 	val activation_func = _func
 
 	method get_weights = weights
-	method set_weights (w:Matrix.t) = weights <- w
+	method set_weights (w:MatrixHopfield.t) = weights <- w
 
 	method get_state = etats
 	method set_state e = etats <-e
@@ -19,15 +20,10 @@ object (s)
 	method get_activation_func = activation_func
 
 	method randomise mini maxi =
-		for i = 1 to n-1 do
-			for j = 0 to i-1 do
-				let rand = mini +. (maxi -. mini) *. Random.float 1. in
-				weights.(i).(j) <- rand;
-				weights.(j).(i) <- rand
-			done
-		done;
+		weights <- MatrixHopfield.random_range n n mini maxi;
+
 		for i = 0 to n - 1 do
-			etats.(i).(0) <- float_of_int (Random.int 1)
+			etats.(i).(0) <- 2. *. float_of_int (Random.int 2) -. 1.
 		done
 
 	(* Mise à jour des poids par règle de Hebb *)
@@ -47,7 +43,7 @@ object (s)
 		etats <- mat
 
 	method process input =
-		for i = 0 to Array.length input -1 do
+		for i = 0 to Array.length input - 1 do
 			etats.(i).(0) <- input.(i).(0)
 		done;		
 		s#update_states

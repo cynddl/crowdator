@@ -1,13 +1,16 @@
-open Matrix
+open MatrixHopfield
 open Mesh
 
-let norm x =
+let step x =
 	if x < 0. then -1.
 	else 1.;;
 
-class hopfield _w _in _out _func =
+let sigmoid x =
+	1. /. (1. +. exp (-.x))
+
+class t _w _in _out _func =
 object (s)
-	val mutable mesh = Mesh.new_mesh _w _func
+	val mutable mesh = new mesh _w _func
 	val w = _w
 	val n_in = _in
 	val n_out = _out
@@ -15,7 +18,7 @@ object (s)
 	
 	(*		assert (n_in <= w && n_out <= w)	*)
 
-	method init = mesh#randomise (-. 1.) 1.
+	method init = mesh#randomise (-1.) 1.
 	method get_mesh = mesh
 	method set_mesh m = mesh <- m
 	method get_w = w
@@ -37,7 +40,17 @@ object (s)
 
 end
 
-let copy h =
-	let hopi = new hopfield h#get_w h#get_n_in h#get_n_out h#get_activation_func in
+let clone h =
+	let hopi = new t h#get_w h#get_n_in h#get_n_out h#get_activation_func in
 	hopi#set_mesh (Mesh.copy h#get_mesh);
 	hopi
+	
+let copy = clone
+
+
+let mutate h factor =
+	let hop = clone h in
+	let mesh = hop#get_mesh in
+	mesh#set_weights (MatrixHopfield.mutate mesh#get_weights factor);
+	hop#set_mesh mesh;
+	hop

@@ -1,40 +1,9 @@
-open Graphics
+include Graphics
+
+open Dataset
 open Primitives
-	
-type point = {x:float; y:float}
-type wall = {p1:point; p2:point}
 
 
-
-(*~ Primitives générales ~*)
-
-let fast_wall a b c d = 
-	{p1 = {x = a; y = b}; p2 = {x = c; y = d}}
-
-let add_vect p = function
-	| (a,b) -> {x = p.x +. a; y = p.y +. b}
-
-let make_vect r t =
-	(r*.cos t, r*.sin t)
-
-let dist p1 p2 =
-	sqrt ((p1.x -. p2.x)**2. +. (p1.y -. p2.y)**2.)
-
-(* Distance à un segment *)
-(*         C             *)
-(*       / |             *)
-(*     /   |             *)
-(*   /     |             *)
-(* A-------H--------B    *)
-(* Attention au cas ou le projeté "dépasse" ! *)
-let dist_to_wall c w =
-	let a,b = w.p1,w.p2 in
-	let ah = abs_float ((b.x-.a.x)*.(c.x-.a.x) +. (b.y-.a.y)*.(c.y-.a.y)) /. (dist a b) in
-	min3 (sqrt ((dist a c)**2.-. ah**2.)) (dist a c) (dist a b)
-
-
-
-(*~ Primitives d'affichage ~*)
 
 (* Facteur de grandissement *)
 let ti f = int_of_float (10. *. f)
@@ -47,5 +16,42 @@ let draw_line p1 p2 =
 let display_point p =
 	draw_circle (ti p.x) (ti p.y) 1
 
+(* Affiche un mur, i.e. un segment *)
+let display_wall w =
+	moveto (ti w.p1.x) (ti w.p1.y);
+	lineto (ti w.p2.x) (ti w.p2.y)
+
+(* Affiche une persone :
+	- disque pour le corps
+	- positions de chaque senseur, colorié en bleu s'il est activé
+*)
+let display_person (p0:person) map =
+	let p = p0#get_point in
+	draw_circle (ti p.x) (ti p.y) (ti p0#radius);
+
+	(*Direction du bonhomme*)
+	moveto (ti p.x) (ti p.y);
+	lineto (ti (p.x +. p0#sensors_radius *. cos p0#angle))
+	       (ti (p.y +. p0#sensors_radius *. sin p0#angle));
+
+	Array.iter2
+		(fun s b ->
+			if b then set_color blue;
+			display_point s;
+			set_color black
+		)
+		p0#get_sensors
+		(get_sensors_col p0 map)
+
+(* Affiche chaque personne et chaque mur d'une map *)
+let display_map map =
+	List.iter display_wall map#obstacles;
+	List.iter (fun s -> display_person s map) map#people
 
 
+let start_display =
+	open_graph "";
+	moveto 10 10; draw_string "101010 !"
+	
+let redraw m =
+	clear_graph (); display_map m

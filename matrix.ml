@@ -1,6 +1,8 @@
+open Primitives
+
 type t = float array array
 
-(* Args: h,w,el *)
+(* Args: nb de lignes, ~ de colonnes, et élément principal *)
 let make_matrix = Array.make_matrix
 
 (* Génère une matrice aléatoire de floats *)
@@ -66,3 +68,6 @@ let print mat =
 	done;
 	Printf.printf "%s" !s
 
+(* Pas de distribution gaussienne pour l'instant ... *)
+let mutate m factor =
+	map m (fun a -> a +. Random.float_range (-.factor) factor)
