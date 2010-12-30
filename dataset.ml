@@ -47,8 +47,8 @@ let dist_to_wall c w =
 
 class person (_p:point) (_t:float) =
 	let r = 1. in
-	let sensors_r = 4. in
-	let sensors_gap = 0.7 in
+	let sensors_r = 2. in
+	let sensors_gap = 1.5 in
 	object (s)
 		val mutable p = _p
 		val mutable t = _t
@@ -134,9 +134,6 @@ let is_there_col_walls w1 w2 =
 
 	let a = (x1-.x2)*.(y3-.y4) -. (y1-.y2)*.(x3-.x4) in
 	let b = (x4-.x3)*.(y1-.y3) -. (y4-.y3)*.(x1-.x3) in
-	
-	(*let px =  ((x1*.y2-.y1*.x2)*.(x3-.x4) -. (x1-.x2)*.(x3*.y4-.y3*.x4)) /. a
-	and py =  ((x1*.y2-.y1*.x2)*.(y3-.y4) -. (y1-.y2)*.(x3*.y4-.y3*.x4)) /. a in*)
 	
 	let px = x1 +. b *. (x2-.x1) /. a
 	and py = y1 +. b *. (y2-.y1) /. a in

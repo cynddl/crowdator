@@ -7,6 +7,9 @@ open Primitives
 
 (* Déplacement à l'aide d'un réseau de Hopfield *)
 
+let pas = 0.5
+let angle_factor = 0.3
+
 let hop_input someone m =
 	let pos_out = m#get_exit someone#point in
 	let dx = pos_out.x -. someone#point.x in
@@ -22,10 +25,8 @@ let hop_input someone m =
 let update_angle someone m ~hop =
 	let arr = hop_input someone m in
 	if (hop#get_rule arr).(0) = 1. then
-		someone#set_angle (someone#angle +. (hop#get_rule arr).(1) /. 3.)
+		someone#set_angle (someone#angle +. (hop#get_rule arr).(1) *. angle_factor)
 	else ()
-
-let pas = 0.5
 
 let update_one someone m ~hop =
 	let p = someone#point in
@@ -50,6 +51,9 @@ let test_hop ~display hop =
 	
 	let my_map = new map {x=42.; y=10.} in
 	my_map#add_person (new person {x=5.; y=18.}  (Random.float_range 0. 1.));
+	my_map#add_person (new person {x=10.; y=13.}  (Random.float_range 0. 1.));
+	my_map#add_person (new person {x=5.; y=10.}  (Random.float_range 0. 1.));
+	
 	
 	my_map#add_wall (fast_wall 2. 42. 42. 42.);
 	my_map#add_wall (fast_wall 2. 2. 2. 42.);
@@ -60,7 +64,7 @@ let test_hop ~display hop =
 	my_map#add_wall (fast_wall 20. 20. 20. 42.);
 	
 	my_map#add_box (fast_box 2. 2. 20. 42. 25. 10.);
-	my_map#add_box (fast_box 20. 2. 30. 42. 32. 35.);
+	my_map#add_box (fast_box 20. 2. 30. 42. 32. 40.);
 	my_map#add_box (fast_box 30. 2. 42. 42. 42. 10.);
 		
 	
@@ -78,7 +82,7 @@ let _ =
 	Random.self_init ();
 
 	start_display;
-	let hop = new Hopfield.t 6 4 2 Hopfield.step in
+	let hop = new Hopfield.t 8 4 2 Hopfield.step in
 	hop#init;
 
 	let pop1 = HopfieldEvoluate.generate_population hop 3. 100 in

@@ -37,6 +37,6 @@ module Array = struct
   		done
 end
 
-(* En millisecondes *)
+(* En millisecondes ! *)
 let wait time =
     ignore(Unix.select [] [] [] (float_of_int time /. 1000.))
