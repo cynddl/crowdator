@@ -121,8 +121,7 @@ class map (_final_exit:point) =
 			get_exit p _boxes
 			
 		method clean =
-			_people <- [];
-			_obst <- []
+			_people <- []
 			
 		
 	end

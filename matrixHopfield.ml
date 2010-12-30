@@ -29,8 +29,13 @@ let random_range n n0 mini maxi =
 	m
 
 let mutate m factor =
-	let new_m = Matrix.mutate m factor in
-	for i = 0 to Array.length m - 1 do
-		new_m.(i).(i) <- 0.
+	let n = Array.length m in
+	let new_m = Matrix.make_matrix n n 0. in
+	for i = 1 to n-1 do
+		for j = 0 to i-1 do
+			let rand = m.(i).(j) +. Random.float_range (-.factor) factor in
+			new_m.(i).(j) <- rand;
+			new_m.(j).(i) <- rand
+		done
 	done;
 	new_m

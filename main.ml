@@ -45,16 +45,30 @@ let iterate m ~display ~hop =
 	update m ~hop;
 	remove_escaped m;
 	if display then 
-	(Primitives.wait 200; redraw m )
+	(Primitives.wait 100; redraw m )
 
-let test_hop ~display hop =
+let test_hop ~display m hop =
+
+	m#clean;
+	m#add_person (new person {x=5.; y=18.}  (Random.float_range 0. 1.));
+	m#add_person (new person {x=10.; y=13.}  (Random.float_range 0. 1.));
+	m#add_person (new person {x=5.; y=10.}  (Random.float_range 0. 1.));
+	
+	(* Au plus 100 itérations *)
+	let rec loop n = match (n, key_pressed () || List.length m#people = 0) with
+		| (_, true)
+		| (0, _) -> ()
+		| (_ , false) ->
+			(iterate m ~display ~hop; loop (n-1))
+	in loop 200;
+		
+	List.length m#people
+
+
+let _ =
+	Random.self_init ();
 	
 	let my_map = new map {x=42.; y=10.} in
-	my_map#add_person (new person {x=5.; y=18.}  (Random.float_range 0. 1.));
-	my_map#add_person (new person {x=10.; y=13.}  (Random.float_range 0. 1.));
-	my_map#add_person (new person {x=5.; y=10.}  (Random.float_range 0. 1.));
-	
-	
 	my_map#add_wall (fast_wall 2. 42. 42. 42.);
 	my_map#add_wall (fast_wall 2. 2. 2. 42.);
 	my_map#add_wall (fast_wall 2. 2. 42. 2.);
@@ -65,34 +79,21 @@ let test_hop ~display hop =
 	
 	my_map#add_box (fast_box 2. 2. 20. 42. 25. 10.);
 	my_map#add_box (fast_box 20. 2. 30. 42. 32. 40.);
-	my_map#add_box (fast_box 30. 2. 42. 42. 42. 10.);
-		
+	my_map#add_box (fast_box 30. 2. 42. 42. 38. 10.);
 	
-	(* Au plus 100 itérations *)
-	let rec loop n = match (n, key_pressed () || List.length my_map#people = 0) with
-		| (_, true)
-		| (0, _) -> ()
-		| (_ , false) ->
-			(iterate my_map ~display ~hop; loop (n-1))
-	in loop 200;
-	List.length my_map#people
-
-
-let _ =
-	Random.self_init ();
-
 	start_display;
-	let hop = new Hopfield.t 8 4 2 Hopfield.step in
+	let hop = new Hopfield.t 12 4 2 Hopfield.step in
 	hop#init;
 
 	let pop1 = HopfieldEvoluate.generate_population hop 3. 100 in
-	let best1 = HopfieldEvoluate.choose_best (test_hop ~display:false) pop1 in
+	let best1 = HopfieldEvoluate.choose_best (test_hop ~display:false my_map) pop1 in
 
 	let pop2 = HopfieldEvoluate.generate_population best1 1. 100 in
-	let best2 = HopfieldEvoluate.choose_best (test_hop ~display:false) pop2 in
+	let best2 = HopfieldEvoluate.choose_best (test_hop ~display:false my_map) pop2 in
 
 	let pop3 = HopfieldEvoluate.generate_population best2 1. 100 in
-	let best3 = HopfieldEvoluate.choose_best (test_hop ~display:false) pop3 in
+	let best3 = HopfieldEvoluate.choose_best (test_hop ~display:false my_map) pop3 in
 
-	Printf.printf "%d\n" (test_hop ~display:true best3)
+
+	Printf.printf "%d\n" (test_hop ~display:true my_map best3)
 

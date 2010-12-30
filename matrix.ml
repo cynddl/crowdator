@@ -69,5 +69,6 @@ let print mat =
 	Printf.printf "%s" !s
 
 (* Pas de distribution gaussienne pour l'instant ... *)
+(* La fonction map pour des matrices renvoie ici une NOUVELLE matrice *)
 let mutate m factor =
 	map m (fun a -> a +. Random.float_range (-.factor) factor)
