@@ -36,3 +36,7 @@ module Array = struct
     		f a1.(i) a2.(i);
   		done
 end
+
+(* En millisecondes *)
+let wait time =
+    ignore(Unix.select [] [] [] (float_of_int time /. 1000.))

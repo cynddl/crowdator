@@ -22,10 +22,10 @@ let hop_input someone m =
 let update_angle someone m ~hop =
 	let arr = hop_input someone m in
 	if (hop#get_rule arr).(0) = 1. then
-		someone#set_angle (someone#angle +. (hop#get_rule arr).(1) /. 2.)
+		someone#set_angle (someone#angle +. (hop#get_rule arr).(1) /. 3.)
 	else ()
 
-let pas = 1.
+let pas = 0.5
 
 let update_one someone m ~hop =
 	let p = someone#point in
@@ -44,7 +44,7 @@ let iterate m ~display ~hop =
 	update m ~hop;
 	remove_escaped m;
 	if display then 
-	(Unix.sleep 1; redraw m )
+	(Primitives.wait 200; redraw m )
 
 let test_hop ~display hop =
 	
@@ -70,7 +70,7 @@ let test_hop ~display hop =
 		| (0, _) -> ()
 		| (_ , false) ->
 			(iterate my_map ~display ~hop; loop (n-1))
-	in loop 100;
+	in loop 200;
 	List.length my_map#people
 
 
