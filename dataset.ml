@@ -47,7 +47,7 @@ let dist_to_wall c w =
 
 class person (_p:point) (_t:float) =
 	let r = 1. in
-	let sensors_r = 3. in
+	let sensors_r = 4. in
 	let sensors_gap = 0.7 in
 	object (s)
 		val mutable p = _p
@@ -72,13 +72,38 @@ class person (_p:point) (_t:float) =
 			
 	end
 
-class map =
+class box _p1 _p2 (_p_out:point) =
+	object (s)
+		val p1 = _p1
+		val p2 = _p2
+		val p_out = _p_out
+		
+		method p1=p1
+		method p2=p2
+
+		method is_in p =
+			is_in_range p.x p1.x p2.x && is_in_range p.y p1.y p2.y
+
+		method get_exit = p_out
+
+	end
+
+let get_exit p box_list =
+	(List.find (fun b->b#is_in p) box_list)#get_exit
+
+let fast_box x1 y1 x2 y2 xe ye = new box {x=x1;y=y1} {x=x2;y=y2} {x=xe;y=ye}
+
+class map (_final_exit:point) =
 	object (s)
 		val mutable _people = []
 		val mutable _obst = []
+		val mutable _boxes = []
+		val final_exit = _final_exit
 		
 		method obstacles = _obst
 		method people = _people
+		method boxes = _boxes
+
 		method set_people l = _people <- l
 		
 		method add_person (someone:person) =
@@ -86,22 +111,35 @@ class map =
 		
 		method add_wall (w:wall) =
 			_obst <- w::_obst
+		
+		method add_box (b:box) =
+			_boxes <- b::_boxes
+		
+		method get_final_exit = final_exit
+		
+		method get_exit p =
+			get_exit p _boxes
 			
 		method clean =
 			_people <- [];
 			_obst <- []
+			
+		
 	end
-
 
 (* Détermine si deux segments s'intersectent *)
 let is_there_col_walls w1 w2 = 
 	let x1,x2,x3,x4 = w1.p1.x, w1.p2.x, w2.p1.x, w2.p2.x
 	and y1,y2,y3,y4 = w1.p1.y, w1.p2.y, w2.p1.y, w2.p2.y in
 
-	let px =  ((x1*.y2-.y1*.x2)*.(x3-.x4) -. (x1-.x2)*.(x3*.y4-.y3*.x4))
-		   /. ((x1-.x2)*.(y3-.y4) -. (y1-.y2)*.(x3-.x4))
-	and py =  ((x1*.y2-.y1*.x2)*.(y3-.y4) -. (y1-.y2)*.(x3*.y4-.y3*.x4))
-	       /.  ((x1-.x2)*.(y3-.y4) -. (y1-.y2)*.(x3-.x4)) in
+	let a = (x1-.x2)*.(y3-.y4) -. (y1-.y2)*.(x3-.x4) in
+	let b = (x4-.x3)*.(y1-.y3) -. (y4-.y3)*.(x1-.x3) in
+	
+	(*let px =  ((x1*.y2-.y1*.x2)*.(x3-.x4) -. (x1-.x2)*.(x3*.y4-.y3*.x4)) /. a
+	and py =  ((x1*.y2-.y1*.x2)*.(y3-.y4) -. (y1-.y2)*.(x3*.y4-.y3*.x4)) /. a in*)
+	
+	let px = x1 +. b *. (x2-.x1) /. a
+	and py = y1 +. b *. (y2-.y1) /. a in
 
 	is_in_range px x1 x2 && is_in_range px x3 x4 &&
 	is_in_range py y1 y2 && is_in_range py y3 y4

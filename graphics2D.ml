@@ -43,8 +43,13 @@ let display_person (p0:person) map =
 		p0#get_sensors
 		(get_sensors_col p0 map)
 
+let display_box b =
+	draw_rect (ti(min b#p1.x b#p2.x)) (ti(min b#p1.y b#p2.y)) (ti(abs_float (b#p2.x -. b#p1.x)))  (ti(abs_float (b#p2.y -. b#p1.y)));
+	display_point b#get_exit
+
 (* Affiche chaque personne et chaque mur d'une map *)
 let display_map map =
+	set_color green;	List.iter display_box map#boxes; set_color black;
 	List.iter display_wall map#obstacles;
 	List.iter (fun s -> display_person s map) map#people
 
