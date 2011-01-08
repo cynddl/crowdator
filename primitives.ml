@@ -18,6 +18,9 @@ let is_in_range a n p =
 
 let min3 a b = min (min a b)
 
+let min_en_norme a b =
+	if abs_float a < abs_float b then a else b
+
 module Random = struct
 	include Random
 	
