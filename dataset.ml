@@ -5,8 +5,8 @@ open Primitives
  *  TYPES : POINT & WALL  *
  **************************)
 
-type point = {x:float; y:float}
-type wall = {p1:point; p2:point}
+type point = {x : float; y : float}
+type wall = {p1 : point; p2 : point}
 
 (* Operations on points and walls *)
 
@@ -14,10 +14,10 @@ let fast_wall a b c d =
 	{p1 = {x = a; y = b}; p2 = {x = c; y = d}}
 
 let add_vect p = function
-	| (a,b) -> {x = p.x +. a; y = p.y +. b}
+	| {x=a;y=b} -> {x = p.x +. a; y = p.y +. b}
 
 let make_vect r t =
-	(r*.cos t, r*.sin t)
+	{x=r*.cos t; y=r*.sin t}
 	
 let dist p1 p2 =
 	sqrt ((p1.x -. p2.x)**2. +. (p1.y -. p2.y)**2.)
@@ -31,8 +31,6 @@ let dist p1 p2 =
 (* Attention au cas ou le projeté "dépasse" ! *)
 let dist_to_wall c w =
 	let a, b = w.p1, w.p2 in
-	(*let ah = abs_float ((b.x-.a.x)*.(c.x-.a.x) +. (b.y-.a.y)*.(c.y-.a.y)) /. (dist a b) in
-	min3 (sqrt ((dist a c)**2.-. ah**2.)) (dist a c) (dist c b)*)
 	let p, q = (b.x -. a.x) /. dist a b, (b.y -. a.y) /. dist a b in
 	let s = p *. (c.x -. a.x) +. q *. (c.y -. a.y) in
 	let p = {x = a.x +. s*.p; y = a.y +. s*.q} in
@@ -88,43 +86,22 @@ class box _p1 _p2 (_p_out:point) =
 
 	end
 
-let get_exit p box_list =
+let get_exit box_list p =
 	(List.find (fun b->b#is_in p) box_list)#get_exit
+	
 
 let fast_box x1 y1 x2 y2 xe ye = new box {x=x1;y=y1} {x=x2;y=y2} {x=xe;y=ye}
 
-class map (_final_exit:point) =
-	object (s)
-		val mutable _people = []
-		val mutable _obst = []
-		val mutable _boxes = []
-		val final_exit = _final_exit
-		
-		method obstacles = _obst
-		method people = _people
-		method boxes = _boxes
+type map =
+	{
+		w : int;
+		h : int;
+		mutable obstacles : wall list;
+		mutable people : person list;
+		mutable boxes : box list;
+		mutable final_exit : point
+	}
 
-		method set_people l = _people <- l
-		
-		method add_person (someone:person) =
-			_people <- someone::_people
-		
-		method add_wall (w:wall) =
-			_obst <- w::_obst
-		
-		method add_box (b:box) =
-			_boxes <- b::_boxes
-		
-		method get_final_exit = final_exit
-		
-		method get_exit p =
-			get_exit p _boxes
-			
-		method clean =
-			_people <- []
-			
-		
-	end
 
 (* Détermine si deux segments s'intersectent *)
 let is_there_col_walls w1 w2 = 
@@ -142,14 +119,14 @@ let is_there_col_walls w1 w2 =
 
 (* Détermine naivement si un segment intersecte les obstacles de la carte *)
 let is_there_collision_wall w0 m =
-	assume_once (is_there_col_walls w0) m#obstacles
+	assume_once (is_there_col_walls w0) m.obstacles
 
 let is_in_person p p0 =
-	dist p p0#point <= p0#radius
+	dist p p0#point < p0#radius
 
-(* Est-ce qu'un pint se serait caché dans quelqu'un ?? *)
+(* Est-ce qu'un point se serait caché dans quelqu'un ?? *)
 let is_there_collision_point p m =
-	assume_once (fun p0->is_in_person p p0) m#people
+	assume_once (fun p0->is_in_person p p0) m.people
 
 
 (* Détermine la liste des collisions pour les 3 senseurs*)
@@ -170,21 +147,21 @@ let min_dist_to_walls p =
 
 (* Vérifie si une personne est bien positionnée *)
 let is_there_col_people someone m =
-	min_dist_to_walls someone#point m#obstacles < someone#radius ||
+	min_dist_to_walls someone#point m.obstacles < someone#radius ||
 	assume_once
 		(fun p0->
 			if p0#point <> someone#point then
 				dist p0#point someone#point <= p0#radius +. someone#radius
 			else false (*eh c'est moi !*)
 		)
-		m#people
+		m.people
 
 let is_there_future_col_people someone m futurepos =
-	min_dist_to_walls futurepos m#obstacles < someone#radius ||
+	min_dist_to_walls futurepos m.obstacles < someone#radius ||
 	assume_once
 		(fun p0 ->
 			if p0#point <> someone#point then
 				dist p0#point futurepos <= p0#radius +. someone#radius
 			else false
 		)
-		m#people
+		m.people

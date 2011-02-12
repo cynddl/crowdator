@@ -40,6 +40,33 @@ module Array = struct
   		done
 end
 
+let sign x =
+    compare x 0
+
+let sign_float x =
+    float (compare x 0.)
+
 (* En millisecondes ! *)
 let wait time =
     ignore(Unix.select [] [] [] (float_of_int time /. 1000.))
+
+(* Memoization *)
+let memo f =
+    let m = ref [] in
+    fun x ->
+        try
+            List.assoc x !m
+        with
+        Not_found ->
+            let y = f x in
+            m := (x, y) :: !m ;
+            y
+
+(* Applique une fonction à un pavé n*m *)
+let map_range n m f =
+	let rec aux =function
+		| (0,0) -> []
+		| (0,j) -> (f 0 j) :: aux (0,j-1)
+		| (i,0) -> (f i 0) :: aux (i-1, m)
+		| (i,j) -> (f i j) :: aux (i, j-1)
+	in aux (n,m)

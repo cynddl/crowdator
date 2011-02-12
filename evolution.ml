@@ -1,3 +1,18 @@
+(**
+  Module permettant de construire un individu plus évolué par algorithme génétique.
+  Le but est d'augment le degré d'adaptation (fitness) par sélection, mutation et reproduction.
+  
+  L'algorithme générale est de la forme suivante :
+   - génération aléatoire via generate_population, autour d'un individu
+   - évaluation des individus
+   - application des croisement et mutation (non implémentée)
+   - sélection des individus
+  (- on réitère l'algorithme à partir de l'étape 2)
+  
+  On construit donc un individu viable capable de réagir de façon plus précise aux taches demandées.
+**)
+
+
 open Hopfield
 open MatrixHopfield
 

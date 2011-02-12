@@ -4,22 +4,77 @@ open Dataset
 open Primitives
 
 
+(**
+    Le monde où se déplacent les personnes est dans un système de coordonnée propres,
+    qu'il faut transformer pour afficher à l'écran. On utilise pour cela deux types de
+    coordonnées :
+     - coordonnées virtuelle : celles des personnages ;
+     - coordonnées réelles : celles de l'écran.
+**)
 
-(* Facteur de grandissement *)
-let ti f = int_of_float (10. *. f)
+type screen_params =
+	{
+	    mutable center : int * int;
+		mutable zoom : float;
+	}
+	
+(* Pour les mouvements de l'écran *)
+type direction =
+    | Up
+    | Down
+    | Right
+    | Left
+
+
+type direction_zoom =
+    | In
+    | Out
+
+
+let screen =
+	{ center = (0,0); zoom = 10.}
+	
+(** Fonctions de conversion des coordonnées **)
+
+let virtual_to_real (x,y) =
+    let cx, cy = screen.center in
+    (cx + int_of_float (screen.zoom *. (x -. float cx)),
+     cy + int_of_float (screen.zoom *. (y -. float cy)))
+
+
+(* Homothétie d'affichage*)
+let ti f =
+	int_of_float (screen.zoom *. f)
+
+(* Transforme un point en couple d'entiers mis à l'échelle *)
+let hm p = 
+    virtual_to_real (p.x, p.y)
+
+
+(* Fonctions d'affichage *)	
 
 let draw_line p1 p2 =
-	moveto (ti p1.x) (ti p1.y);
-	lineto (ti p2.x) (ti p2.y)
+	let _p1, _p2 = hm p1, hm p2 in
+	moveto (fst _p1) (snd _p1);
+	lineto (fst _p2) (snd _p2)
 
 (* Affiche un point à l'écran *)
 let display_point p =
-	draw_circle (ti p.x) (ti p.y) 1
+	let _p = hm p in
+	draw_circle (fst _p) (snd _p) 1
+	
+let display_circle p r =
+	let _p = hm p in
+	draw_circle (fst _p) (snd _p) (ti r)
 
 (* Affiche un mur, i.e. un segment *)
 let display_wall w =
-	moveto (ti w.p1.x) (ti w.p1.y);
-	lineto (ti w.p2.x) (ti w.p2.y)
+	draw_line w.p1 w.p2
+	
+let display_rect p1 p2 =
+	let x1, x2 = min (fst (hm p1)) (fst (hm p2)), max (fst (hm p1)) (fst (hm p2))
+	and y1, y2 = min (snd (hm p1)) (snd (hm p2)), max (snd (hm p1)) (snd (hm p2)) in
+	draw_rect x1 y1 (x2-x1) (y2-y1)
 
 (* Affiche une persone :
 	- disque pour le corps
@@ -27,13 +82,12 @@ let display_wall w =
 *)
 let display_person (p0:person) map =
 	let p = p0#get_point in
-	draw_circle (ti p.x) (ti p.y) (ti p0#radius);
+	display_circle p p0#radius;
 
 	(*Direction du bonhomme*)
-	moveto (ti p.x) (ti p.y);
-	lineto (ti (p.x +. p0#sensors_radius *. cos p0#angle))
-	       (ti (p.y +. p0#sensors_radius *. sin p0#angle));
+	draw_line p (add_vect p (make_vect p0#sensors_radius p0#angle));
 
+	(* Affichage des senseurs *)
 	Array.iter2
 		(fun s b ->
 			if b then set_color blue;
@@ -44,19 +98,40 @@ let display_person (p0:person) map =
 		(get_sensors_col p0 map)
 
 let display_box b =
-	draw_rect (ti(min b#p1.x b#p2.x)) (ti(min b#p1.y b#p2.y)) (ti(abs_float (b#p2.x -. b#p1.x)))  (ti(abs_float (b#p2.y -. b#p1.y)));
+	display_rect b#p1 b#p2;
 	display_point b#get_exit
 
 (* Affiche chaque personne et chaque mur d'une map *)
 let display_map map =
-	set_color green;	List.iter display_box map#boxes; set_color black;
-	List.iter display_wall map#obstacles;
-	List.iter (fun s -> display_person s map) map#people
+	set_color green;
+	List.iter display_box map.boxes;
+	set_color black;
+	List.iter display_wall map.obstacles;
+	List.iter (fun s -> display_person s map) map.people;
+	synchronize ()
 
+let move_screen dir =
+    let cx, cy = screen.center in
+    let (dx, dy) = match dir with
+        | Up -> (10, 0)
+        | Down -> (-10, 0)
+        | Left -> (0, -10)
+        | Right -> (0, 10)
+    in
+        screen.center <- (cx+dx, dy+dy)
+
+let zoom_screen dir =
+    let r = match dir with
+        | In -> 1.
+        | Out -> -1.
+    in
+        screen.zoom <- screen.zoom +. r
 
 let start_display =
 	open_graph "";
-	moveto 10 10; draw_string "101010 !"
+	(* Pour éviter le clignotement *)
+	auto_synchronize false
+	
 	
 let redraw m =
 	clear_graph (); display_map m

@@ -1,5 +1,6 @@
 open MatrixHopfield
 open Mesh
+open Primitives
 
 let step x =
 	if x < 0. then -1.
@@ -30,13 +31,16 @@ object (s)
 	method present input =
 		mesh#process input;
 		mesh#get_state
-
-	method get_rule =
+    
+	method get_rule_static =
 		(fun vec_in ->
 			assert (Array.length vec_in = n_in);
 			let out = s#present (Matrix.make_unicol vec_in) in
 			Array.init n_out (fun i-> out.(n_in+i).(0))
 		)
+    
+    (* On optimise la fonction règle *)
+    method get_rule = memo s#get_rule_static
 
 end
 
@@ -44,9 +48,6 @@ let clone h =
 	let hopi = new t h#get_w h#get_n_in h#get_n_out h#get_activation_func in
 	hopi#set_mesh (Mesh.copy h#get_mesh);
 	hopi
-	
-let copy = clone
-
 
 let mutate h factor =
 	let hop = clone h in
