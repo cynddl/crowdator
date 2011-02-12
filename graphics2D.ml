@@ -1,6 +1,7 @@
 include Graphics
 
 open Dataset
+open Event
 open Primitives
 
 
@@ -17,18 +18,6 @@ type screen_params =
 	    mutable center : int * int;
 		mutable zoom : float;
 	}
-	
-(* Pour les mouvements de l'écran *)
-type direction =
-    | Up
-    | Down
-    | Right
-    | Left
-
-
-type direction_zoom =
-    | In
-    | Out
 
 
 let screen =
@@ -113,12 +102,12 @@ let display_map map =
 let move_screen dir =
     let cx, cy = screen.center in
     let (dx, dy) = match dir with
-        | Up -> (10, 0)
-        | Down -> (-10, 0)
-        | Left -> (0, -10)
-        | Right -> (0, 10)
+        | Up -> (0, 2)
+        | Down -> (0, -2)
+        | Left -> (-2, 0)
+        | Right -> (2, 0)
     in
-        screen.center <- (cx+dx, dy+dy)
+        screen.center <- (cx+dx, cy+dy)
 
 let zoom_screen dir =
     let r = match dir with

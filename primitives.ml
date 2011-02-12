@@ -48,7 +48,10 @@ let sign_float x =
 
 (* En millisecondes ! *)
 let wait time =
-    ignore(Unix.select [] [] [] (float_of_int time /. 1000.))
+    try
+        ignore(Unix.select [] [] [] (float_of_int time /. 1000.))
+    with
+        | _ -> ()
 
 (* Memoization *)
 let memo f =

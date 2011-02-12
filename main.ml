@@ -1,4 +1,5 @@
 open Dataset
+open Event
 open Evolution
 open Hopfield
 open Graphics2D
@@ -39,12 +40,12 @@ let update m ~hop =
 let remove_escaped m =
 	m.people <- (List.filter (fun p0->dist p0#point (m.final_exit) > 5.*.p0#radius) m.people)
 	
-let iterate (m:map) ~display ~hop =
+let iterate (m:map) ~hop ~display =
 	update m ~hop;
 	remove_escaped m;
 	if display then 
 	(* Pause de 100ms *)
-	(Primitives.wait 100; redraw m )
+	(wait 100; redraw m )
 
 
 let test_map ?(display=false) ?(max_time=200) map hop =
@@ -52,18 +53,23 @@ let test_map ?(display=false) ?(max_time=200) map hop =
 	    if List.length map.people = 0 || n = 0 then
 	        ()
 	    else
-	        (iterate map ~display ~hop; loop (n-1))
+	        (iterate map ~hop ~display:false; loop (n-1))
 	in
-	    let rec loop_display n =
-	        if List.length map.people = 0 then ()
-    	    else match (n, key_pressed ()) with
-    		    | (_, true)
-    		    | (0, _) ->
-    			    ()
-    		    | (_ , false) ->
-    			    (iterate map ~display ~hop; loop_display (n-1))
+	    let rec loop_display n polling =
+	        if List.length map.people = 0 || n = 0 then
+	            ()
+    	    else match wait_next_event (if polling then [Poll;Key_pressed] else [Key_pressed]) with
+    	        | status when status.keypressed ->
+    	            (match parse_keypressed status.key with
+    	                | Zoom dir -> (zoom_screen dir; iterate map ~display ~hop; loop_display (n-1) false)
+    	                | Move dir -> (move_screen dir; iterate map ~display ~hop; loop_display (n-1) false)
+    	                | NoDisplay -> (iterate map ~display ~hop; loop (n-1))
+    	                | Quit -> ()
+    	                | Nothing -> (iterate map ~display ~hop; loop_display (n-1) (not polling)))
+    	        | _ -> 
+    			    (iterate map ~display ~hop; loop_display (n-1) true)
 	in
-	    (if display then loop_display max_time
+	    (if display then loop_display max_time true
         else loop max_time);
 		List.length map.people
 
@@ -79,7 +85,7 @@ let close_test_map map neural_net =
 		[ (new person {x=10.; y=15.}  (Random.float_range 0. 1.));
 		  (new person {x=15.; y=13.}  (Random.float_range 0. 1.));
 		  (new person {x=10.; y=10.}  (Random.float_range 0. 1.)) ];
-	test_map map neural_net
+	test_map map  ~display:true neural_net
 	
 	
 let deep_test ?(display=false) map neural_net =
