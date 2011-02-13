@@ -85,12 +85,19 @@ let close_test_map map neural_net =
 		[ (new person {x=10.; y=15.}  (Random.float_range 0. 1.));
 		  (new person {x=15.; y=13.}  (Random.float_range 0. 1.));
 		  (new person {x=10.; y=10.}  (Random.float_range 0. 1.)) ];
-	test_map map  ~display:true neural_net
+	test_map map neural_net
 	
 	
 let deep_test ?(display=false) map neural_net =
 	map.people <- map_range 3 7 (fun i j -> new person {x=5.+.4.*.float_of_int i; y=5.+.4.*.float_of_int j}  (Random.float_range 0. 1.));
 	test_map map neural_net ~display ~max_time:300
+	
+let final_test ?(display=false) map neural_net =
+    map.people <- map_range 5 5 (fun i j -> new person {x=2.+.4.*.float_of_int i; y=2.+.4.*.float_of_int j}  (Random.float_range 0. 1.));
+    test_map map neural_net ~display ~max_time:300
+	
+let blank_test ?(display=false) map neural_net =
+    test_map map neural_net ~display ~max_time:300
 
 let _ =
 	Random.self_init ();
@@ -120,20 +127,57 @@ let _ =
 			boxes = boxes;
 			final_exit = {x=40.; y=12.}
 
-		} in
+		}
+	in
+	
+	let walls2 =
+	    [
+	        (* Murs extérieurs *)
+	        fast_wall 0. 0. 50. 0.;
+	        fast_wall 0. 0. 0. 50.;
+	        fast_wall 0. 50. 50. 50.;
+	        fast_wall 50. 0. 50. 50.;
+	        (* Murs intérieurs *)
+	        fast_wall 30. 0. 30. 20.;
+	        fast_wall 30. 25. 30. 50.;
+	        fast_wall 25. 21. 25. 24.
+	    ]
+	in
+	let boxes2 = 
+	    [
+	        fast_box 0. 0. 30. 50. 35. 22.;
+	        fast_box 30. 0. 50. 50. 45. 25.;
+        ]
+	in
+	let final_map =
+	    {
+	        w = 50;
+	        h = 50;
+	        obstacles = walls2;
+	        boxes = boxes2;
+	        people = [];
+	        final_exit = {x=45.; y=25.}
+	    }
+
+	in
+
 	let hop = new Hopfield.t 12 4 1 Hopfield.step in
 	hop#init;
 
-	let pop1 = HopfieldEvoluate.generate_population hop 3. 100 in
-	let best1 = HopfieldEvoluate.choose_best (close_test_map my_map) pop1 in
-
-	let pop2 = HopfieldEvoluate.generate_population best1 1. 100 in
-	let best2 = HopfieldEvoluate.choose_best (fast_test_map my_map) pop2 in
-
-	let pop3 = HopfieldEvoluate.generate_population best2 1. 100 in
-	let best3 = HopfieldEvoluate.choose_best (fast_test_map my_map) pop3 in
-
+	let pop1 = HopfieldEvoluate.generate_population hop 2. 500 in
+	let best1 = HopfieldEvoluate.choose_best (fast_test_map my_map) pop1 in
+    Printf.printf "%d\n" (fast_test_map my_map best1); flush stdout;
+    
+	let pop2 = HopfieldEvoluate.generate_population best1 2. 100 in
+	let best2 = HopfieldEvoluate.choose_best (close_test_map my_map) pop2 in
+    Printf.printf "%d\n" (fast_test_map my_map best2); flush stdout;
+    
+	let pop3 = HopfieldEvoluate.generate_population best2 1. 50 in
+	let best3 = HopfieldEvoluate.choose_best (deep_test my_map) pop3 in
+    Printf.printf "%d\n" (fast_test_map my_map best3); flush stdout;
+    
 	if fast_test_map my_map best3 = 0 then
+		(*Printf.printf "%d\n" (deep_test ~display:true my_map best3)*)
 		Printf.printf "%d\n" (deep_test ~display:true my_map best3)
 	else
-		Printf.printf "Désolé, je suis encore top jeune pour toi.\n"
+		Printf.printf "Désolé, je suis encore trop jeune pour toi.\n"
