@@ -3,6 +3,8 @@ include Graphics
 open Dataset
 open Event
 open Primitives
+open Rtree
+open Mbr
 
 
 (**
@@ -98,6 +100,20 @@ let display_map map =
 	List.iter display_wall map.obstacles;
 	List.iter (fun s -> display_person s map) map.people;
 	synchronize ()
+	
+	
+(* MBR & R-tree displaying *)
+
+let display_mbr (x0, x1, y0, y1) =
+    display_rect {x=x0; y=y0} {x=x1; y=y1}
+
+let rec display_rtree = function
+    | Empty -> ()
+    | Leaf f ->
+        List.iter (fun (m, _) -> set_color blue;display_mbr m;set_color black) f
+    | Node n ->
+        List.iter (fun (m, e) -> display_mbr m; display_rtree e) n
+        
 
 let move_screen dir =
     let cx, cy = screen.center in

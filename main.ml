@@ -5,7 +5,6 @@ open Hopfield
 open Graphics2D
 open Primitives
 
-
 (* Déplacement à l'aide d'un réseau de Hopfield *)
 
 let pas = 0.5
@@ -164,7 +163,7 @@ let _ =
 	let hop = new Hopfield.t 12 4 1 Hopfield.step in
 	hop#init;
 
-	let pop1 = HopfieldEvoluate.generate_population hop 2. 500 in
+	let pop1 = HopfieldEvoluate.generate_population hop 2. 200 in
 	let best1 = HopfieldEvoluate.choose_best (fast_test_map my_map) pop1 in
     Printf.printf "%d\n" (fast_test_map my_map best1); flush stdout;
     
@@ -172,12 +171,12 @@ let _ =
 	let best2 = HopfieldEvoluate.choose_best (close_test_map my_map) pop2 in
     Printf.printf "%d\n" (fast_test_map my_map best2); flush stdout;
     
-	let pop3 = HopfieldEvoluate.generate_population best2 1. 50 in
+	(*let pop3 = HopfieldEvoluate.generate_population best2 1. 50 in
 	let best3 = HopfieldEvoluate.choose_best (deep_test my_map) pop3 in
-    Printf.printf "%d\n" (fast_test_map my_map best3); flush stdout;
+    Printf.printf "%d\n" (fast_test_map my_map best3); flush stdout;*)
     
-	if fast_test_map my_map best3 = 0 then
+	if fast_test_map my_map best2 = 0 then
 		(*Printf.printf "%d\n" (deep_test ~display:true my_map best3)*)
-		Printf.printf "%d\n" (deep_test ~display:true my_map best3)
+		Printf.printf "%d\n" (deep_test ~display:true my_map best2)
 	else
 		Printf.printf "Désolé, je suis encore trop jeune pour toi.\n"
