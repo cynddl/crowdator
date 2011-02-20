@@ -85,8 +85,8 @@ let close_test_map map neural_net =
 		  (new person {x=15.; y=13.}  (Random.float_range 0. 1.));
 		  (new person {x=10.; y=10.}  (Random.float_range 0. 1.)) ];
 	test_map map neural_net
-	
-	
+
+
 let deep_test ?(display=false) map neural_net =
 	map.people <- map_range 3 7 (fun i j -> new person {x=5.+.4.*.float_of_int i; y=5.+.4.*.float_of_int j}  (Random.float_range 0. 1.));
 	test_map map neural_net ~display ~max_time:300

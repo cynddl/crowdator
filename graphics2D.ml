@@ -8,10 +8,10 @@ open Mbr
 
 
 (**
-    Le monde où se déplacent les personnes est dans un système de coordonnée propres,
+    Le monde où se déplacent les personnes est dans un système de coordonnées propres,
     qu'il faut transformer pour afficher à l'écran. On utilise pour cela deux types de
     coordonnées :
-     - coordonnées virtuelle : celles des personnages ;
+     - coordonnées virtuelles : celles des personnages ;
      - coordonnées réelles : celles de l'écran.
 **)
 

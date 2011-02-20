@@ -19,6 +19,13 @@ type 'a t =
     | Leaf of (Mbr.t * 'a) list
     | Empty
 
+let rec size = function
+    | Empty -> 0
+    | Leaf f ->
+        List.length f
+    | Node n ->
+        List.fold_left (+) 0 (List.map (fun (_, e) -> size e) n)
+
 
 (* Filtre les éléments d'une liste qui intersectent un rectangle donné. *)
 let filter_mbr m =
@@ -83,6 +90,7 @@ let linear_split node =
             in (list_l', list_r', list_b', list_t')
     in
     let list_l, list_r, list_b, list_t = aux node in
+    Printf.printf "%i %i %i %i\n" (List.length list_l) (List.length list_r) (List.length list_b) (List.length list_t);
     if max (List.length list_l) (List.length list_r) < max (List.length list_b) (List.length list_t) then
         (* split selon l'axe x *)
         (list_l, list_r)
@@ -143,7 +151,8 @@ let rec insert (mbr, e) = function
         let new_elem = (mbr, e) :: f in
         if List.length f + 1 > saturation_count then
             let a, b = split_node new_elem
-            in Node [(mbr_nodes a, Leaf a); (mbr_nodes b, Leaf b)]
+            in
+                Node [(mbr_nodes a, Leaf a); (mbr_nodes b, Leaf b)]
         else
             Leaf new_elem
             

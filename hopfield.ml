@@ -16,7 +16,7 @@ object (s)
 	val n_in = _in
 	val n_out = _out
 	val activation_func = _func
-	
+
 	(*		assert (n_in <= w && n_out <= w)	*)
 
 	method init = mesh#randomise (-1.) 1.
