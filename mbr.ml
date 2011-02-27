@@ -7,6 +7,8 @@
 (* Coordonnées x puis y *)
 type t = float * float * float * float
 
+let empty = 0., 0., 0., 0.
+
 let add (x0, x1, y0, y1) (x0', x1', y0', y1') =
     (min x0 x0'), (max x1 x1'), (min y0 y0'), (max y1 y1')
 

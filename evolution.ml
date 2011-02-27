@@ -32,12 +32,29 @@ module Evoluate = functor (M : MUTATOR) ->
 			| n -> (M.mutate one f) :: (generate_population one f (n-1))
 
 		(* On minimise le stathme *)
-		let rec choose_best (stathme: M.t->int) = function
-			| [] -> failwith "Empty population from Evoluate.choose_best"
-			| [a] -> a
-			| hd::tl ->
-				let b = choose_best stathme tl in
-				if stathme hd < stathme b then hd else b
+		let choose_best (stathme: M.t->int) pop =
+		    let rec aux = function
+			    | [] -> failwith "Empty population from Evoluate.choose_best"
+			    | [a] ->
+			        (a, stathme a)
+			    | hd :: tl ->
+			        let r_hd = stathme hd in
+				    if r_hd = 0 then
+				        (hd, r_hd)
+			        else
+				        (
+				            let b, r_b = aux tl in
+				            if r_hd < r_b then
+				                (hd, r_hd)
+				            else
+				                (b, r_b)
+			            )
+			in
+			    fst (aux pop)
+		
+		let elect_one one f nmax func =
+		    let pop = generate_population one f nmax in
+		    choose_best func pop
 
 	end
 

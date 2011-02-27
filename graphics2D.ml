@@ -3,8 +3,8 @@ include Graphics
 open Dataset
 open Event
 open Primitives
-open Rtree
 open Mbr
+open Rtree
 
 
 (**
@@ -67,10 +67,12 @@ let display_rect p1 p2 =
 	and y1, y2 = min (snd (hm p1)) (snd (hm p2)), max (snd (hm p1)) (snd (hm p2)) in
 	draw_rect x1 y1 (x2-x1) (y2-y1)
 
-(* Affiche une persone :
-	- disque pour le corps
-	- positions de chaque senseur, colorié en bleu s'il est activé
-*)
+
+(**
+    Affiche une persone :
+	 - disque pour le corps
+	 - positions de chaque senseur, colorié en bleu s'il est activé
+**)
 let display_person (p0:person) map =
 	let p = p0#get_point in
 	display_circle p p0#radius;
@@ -88,6 +90,28 @@ let display_person (p0:person) map =
 		p0#get_sensors
 		(get_sensors_col p0 map)
 
+
+
+(** MBR & R-tree displaying **)
+
+let display_mbr (x0, x1, y0, y1) =
+    display_rect {x=x0; y=y0} {x=x1; y=y1}
+
+let display_obstacles map =
+    let aux_display = function
+        | Wall w ->
+            display_wall w
+    in
+    RtreeObstacle.iter aux_display map.obstacles
+
+let rec display_people map =
+    let aux_display p =
+            display_person p map
+    in
+    RtreePeople.iter_all (fun m -> set_color blue;display_mbr m; set_color black) aux_display map.people
+
+
+
 let display_box b =
 	display_rect b#p1 b#p2;
 	display_point b#get_exit
@@ -97,23 +121,12 @@ let display_map map =
 	set_color green;
 	List.iter display_box map.boxes;
 	set_color black;
-	List.iter display_wall map.obstacles;
-	List.iter (fun s -> display_person s map) map.people;
+	display_obstacles map;
+	display_people map;
 	synchronize ()
-	
-	
-(* MBR & R-tree displaying *)
 
-let display_mbr (x0, x1, y0, y1) =
-    display_rect {x=x0; y=y0} {x=x1; y=y1}
 
-let rec display_rtree = function
-    | Empty -> ()
-    | Leaf f ->
-        List.iter (fun (m, _) -> set_color blue;display_mbr m;set_color black) f
-    | Node n ->
-        List.iter (fun (m, e) -> display_mbr m; display_rtree e) n
-        
+(** Déplacement de la zone d'affichage par l'utilisateur **)
 
 let move_screen dir =
     let cx, cy = screen.center in

@@ -5,13 +5,41 @@ open Primitives
  *  TYPES : POINT & WALL  *
  **************************)
 
-type point = {x : float; y : float}
-type wall = {p1 : point; p2 : point}
+type point =
+    {
+        x : float;
+        y : float
+    }
+    
+type wall =
+    {
+        p1 : point;
+        p2 : point;
+        wall_id : int
+    }
+    
+let print_point p =
+    Printf.printf "(%f %f)\n" p.x p.y
+
+let print_wall w =
+    Printf.printf "((%f %f), (%f %f))\n" w.p1.x w.p1.y w.p2.x w.p2.y
 
 (* Operations on points and walls *)
 
 let fast_wall a b c d = 
-	{p1 = {x = a; y = b}; p2 = {x = c; y = d}}
+	{
+	    p1 =
+	        {
+	            x = a;
+	            y = b
+	        };
+	    p2 =
+	        {
+	            x = c;
+	            y = d
+	        };
+	    wall_id = Primitives.unique_id ()
+	}
 
 let add_vect p = function
 	| {x=a;y=b} -> {x = p.x +. a; y = p.y +. b}
@@ -47,10 +75,13 @@ class person (_p:point) (_t:float) =
 	let r = 1. in
 	let sensors_r = 2. in
 	let sensors_gap = 1.5 in
+	
 	object (s)
 		val mutable p = _p
 		val mutable t = _t
+		val id = Primitives.unique_id ()
 		
+		method get_id = id
 		method get_point = p
 		method angle = t
 		method set_angle t0 = t<-t0
@@ -69,6 +100,7 @@ class person (_p:point) (_t:float) =
 		method set_point p0 = p<-p0
 			
 	end
+	
 
 class box _p1 _p2 (_p_out:point) =
 	object (s)
@@ -92,15 +124,72 @@ let get_exit box_list p =
 
 let fast_box x1 y1 x2 y2 xe ye = new box {x=x1;y=y1} {x=x2;y=y2} {x=xe;y=ye}
 
+
+type obstacle_t =
+    | Wall of wall
+
+
+let point_mbr = function
+    | {x = x; y = y} ->
+       ( x -. 1., x +. 1., y -. 1., y +. 1.:Mbr.t)
+
+let wall_mbr = function
+    | { p1 = p1; p2 = p2; wall_id = _ } ->
+        min p1.x p2.x, max p1.x p2.x, min p1.y p2.y, max p1.y p2.y
+
+module Person = struct
+
+    type t = person
+
+    let get_id p = p#get_id
+
+    let get_mbr p =
+        let p0 = p#get_point
+        and r = p#radius in
+        p0.x -. r, p0.x +. r, p0.y -. r, p0.y +. r
+end
+
+let fast_make_obstacle_list liste =
+    List.map (fun w -> Wall w) liste
+
+module Obstacle = struct
+    
+    type t = obstacle_t
+    
+    let get_id = function
+        | Wall w -> w.wall_id
+    
+    let get_mbr = function
+        | Wall w0 ->
+            wall_mbr w0
+    
+end
+
+module RtreeObstacle = Rtree.Rtree (Obstacle)
+
+module RtreePeople = Rtree.Rtree (Person)
+
+let fast_make_people_list liste =
+    List.map (fun e -> (point_mbr e#point, e)) liste
+
 type map =
 	{
 		w : int;
 		h : int;
-		mutable obstacles : wall list;
-		mutable people : person list;
+		mutable obstacles : RtreeObstacle.t;
+		mutable people : RtreePeople.t;
+		mutable id_list : int list;
 		mutable boxes : box list;
 		mutable final_exit : point
 	}
+
+let add_map_people map (people_list:Person.t list) =
+    let id_liste = List.map (fun p -> p#get_id) people_list in
+    {
+        map with
+            people = RtreePeople.insert_list people_list RtreePeople.empty;
+            id_list = id_liste
+    }
 
 
 (* Détermine si deux segments s'intersectent *)
@@ -117,23 +206,38 @@ let is_there_col_walls w1 w2 =
 	is_in_range px x1 x2 && is_in_range px x3 x4 &&
 	is_in_range py y1 y2 && is_in_range py y3 y4
 
-(* Détermine naivement si un segment intersecte les obstacles de la carte *)
-let is_there_collision_wall w0 m =
-	assume_once (is_there_col_walls w0) m.obstacles
+let is_there_col_obstacle w1 w2 = match (w1, w2) with
+    | Wall w1_0, Wall w2_0 ->
+        if Mbr.intersect (Obstacle.get_mbr w1) (Obstacle.get_mbr w2) then
+            is_there_col_walls w1_0 w2_0
+        else
+            false
+    
+
+(* Détermine si un segment intersecte les obstacles de la carte *)
+let is_there_collision_wall m = function
+    | Wall w0 as w ->
+        (* Recherche des voisins du mur *)
+        let possible_walls = RtreeObstacle.find_mbr (Obstacle.get_mbr w) m.obstacles in
+        (* Existe-t-il un obstacle qui l'intersecte ? *)
+        assume_once (is_there_col_obstacle w) (List.map snd possible_walls)
 
 let is_in_person p p0 =
 	dist p p0#point < p0#radius
 
 (* Est-ce qu'un point se serait caché dans quelqu'un ?? *)
-let is_there_collision_point p m =
-	assume_once (fun p0->is_in_person p p0) m.people
+let is_there_collision_point m p =
+    (* Mbr rectangulaire ... *)
+    let possible_people = RtreePeople.find_mbr (point_mbr p) m.people in
+	assume_once (fun p0->is_in_person p p0) (List.map snd possible_people)
 
 
 (* Détermine la liste des collisions pour les 3 senseurs*)
 let get_sensors_col someone m =
 	Array.map
 		(fun s ->
-			is_there_collision_point s m || is_there_collision_wall {p1=someone#point; p2=s} m
+		    let pseudo_obstacle = Wall {p1=someone#point; p2=s; wall_id = 0} in
+			is_there_collision_point m s || is_there_collision_wall m pseudo_obstacle
 		)
 		(someone#get_sensors)
 
@@ -141,27 +245,90 @@ let get_sensors_col someone m =
 let min_dist_to_walls p =
 	let rec aux = function
 		| [] -> infinity (* heureusement que cette "constante" existe *)
-		| hd :: tl -> min (dist_to_wall p hd) (aux tl) in
+		| (Wall hd) :: tl -> min (dist_to_wall p hd) (aux tl) in
 		aux
 
 
 (* Vérifie si une personne est bien positionnée *)
-let is_there_col_people someone m =
-	min_dist_to_walls someone#point m.obstacles < someone#radius ||
+let is_there_col_people_id m p =
+
+    let nearest_obstacles = (List.map snd (RtreeObstacle.find_mbr (Person.get_mbr p) m.obstacles)) in
+    
+    let p0 = p#point and r = p#radius in
+    let box = (p0.x -. 2. *. r, p0.x +. 2. *. r, p0.y -. 2. *. r, p0.y +. 2. *. r) in
+    let nearest_people = (List.map snd (RtreePeople.find_mbr box m.people)) in
+    
+    List.length nearest_obstacles > 0 || min_dist_to_walls p#point nearest_obstacles < p#radius ||
 	assume_once
 		(fun p0->
-			if p0#point <> someone#point then
-				dist p0#point someone#point <= p0#radius +. someone#radius
+			if p0#get_id <> p#get_id then
+				dist p0#point p#point <= p0#radius +. p#radius
 			else false (*eh c'est moi !*)
 		)
-		m.people
+		nearest_people
 
-let is_there_future_col_people someone m futurepos =
-	min_dist_to_walls futurepos m.obstacles < someone#radius ||
+
+let is_there_future_col_people m p futurepos =
+    let r = p#radius in
+    
+    let nearest_obstacles = List.map snd (RtreeObstacle.find_mbr (point_mbr futurepos) m.obstacles) in
+    let box = (futurepos.x -. 2. *. r, futurepos.x +. 2. *. r, futurepos.y -. 2. *. r, futurepos.y +. 2. *. r) in
+    let nearest_people = (List.map snd (RtreePeople.find_mbr box m.people)) in
+    
+	min_dist_to_walls futurepos nearest_obstacles < p#radius ||
 	assume_once
 		(fun p0 ->
-			if p0#point <> someone#point then
-				dist p0#point futurepos <= p0#radius +. someone#radius
+			if p0#get_id <> p#get_id then
+				dist p0#point futurepos <= p0#radius +. p#radius
 			else false
 		)
-		m.people
+		nearest_people
+
+
+
+(** Mise à jour de la carte **)
+
+let pas = 0.5
+let angle_factor = 0.5
+
+let update_person m id ~hop =
+    let someone = RtreePeople.find_id id m.people in
+    let p0 = someone#point in
+
+    let hop_input =
+    	let pos_out = get_exit m.boxes someone#point in
+    	let dx = pos_out.x -. p0.x in
+    	let dy = pos_out.y -. p0.y in
+    	let future_angle = atan (dy/.dx) in
+    	let dteta =  min_en_norme (future_angle -. someone#angle) (future_angle -. someone#angle -. 6.28) in
+    	let f = function
+    		| true -> 1.
+    		| false -> -. 1. in
+    	Array.append (Array.map f (get_sensors_col someone m)) [|sign_float dteta|] in
+        
+    someone#set_angle (someone#angle +. (hop#get_rule hop_input).(0) *. angle_factor);
+    let future_pos =
+        {x=p0.x +. pas *. cos someone#angle; y=p0.y +. pas *. sin someone#angle} in
+    
+    if not (is_there_future_col_people m someone future_pos) then
+        (
+            let new_0 = RtreePeople.remove_id id m.people in            
+            someone#set_point future_pos;
+            let new_rtree_people = RtreePeople.insert someone new_0 in        
+            {m with people = new_rtree_people}
+        )
+    else
+        m
+        (*(
+            let new_0 = RtreePeople.remove_id id m.people in            
+            let new_rtree_people = RtreePeople.insert someone new_0 in        
+            {m with people = new_rtree_people}
+        )*)
+
+
+
+let update_map m ~hop =
+    try
+        List.fold_left (fun map i -> update_person map i ~hop) m m.id_list
+    with
+        _ -> m

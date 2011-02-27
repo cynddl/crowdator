@@ -40,6 +40,11 @@ module Array = struct
   		done
 end
 
+let unique_id =
+    let m = ref 0 in
+    fun () ->
+        (m := !m+1;!m)
+
 let sign x =
     compare x 0
 
