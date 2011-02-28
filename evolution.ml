@@ -39,9 +39,11 @@ module Evoluate = functor (M : MUTATOR) ->
 		    let rec aux = function
 			    | [] -> failwith "Empty population from Evoluate.choose_best"
 			    | [a] ->
-			        (a, stathme a + stathme a + stathme a)
+			        (a, stathme a)
 			    | hd :: tl ->
-			        let r_hd = stathme hd + stathme hd + stathme hd in
+			        let r_hd = stathme hd  in
+			        
+			        (* On a déja trouvé le meilleur candidat, on le renvoit directement *)
 				    if r_hd = 0 then
 				        (hd, r_hd)
 			        else
@@ -58,7 +60,6 @@ module Evoluate = functor (M : MUTATOR) ->
 		let elect_one one f nmax func =
 		    let pop = generate_population one f nmax in
 		    let best = choose_best func pop in 
-		    Printf.printf "%i %i %i %i\n" (func best) (func best) (func best) (func best);
 		    best
 
 	end

@@ -58,7 +58,7 @@ struct
 
     (* Filtre les éléments d'une liste qui intersectent un rectangle donné. *)
     let filter_mbr m =
-        List.filter (fun (m0, _) -> Mbr.intersect m0 m)
+        List.filter (fun (m0, e) -> Mbr.intersect m0 m)
 
 
     (* Renvoie la liste de tous les éléments d'un R-tree intersectant un MBR donné *)

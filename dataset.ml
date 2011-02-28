@@ -71,7 +71,7 @@ let dist_to_wall c w =
  *  TYPES : PERSON & WALL  *
  ***************************)
 
-class person (_p:point) (_t:float) =
+class person (_p:point) (_t:float) _id =
 	let r = 1. in
 	let sensors_r = 2. in
 	let sensors_gap = 1.5 in
@@ -79,7 +79,7 @@ class person (_p:point) (_t:float) =
 	object (s)
 		val mutable p = _p
 		val mutable t = _t
-		val id = Primitives.unique_id ()
+		val id = if _id <> 0 then _id else Primitives.unique_id ()
 		
 		method get_id = id
 		method get_point = p
@@ -176,11 +176,11 @@ type map =
 	{
 		w : int;
 		h : int;
-		mutable obstacles : RtreeObstacle.t;
-		mutable people : RtreePeople.t;
-		mutable id_list : int list;
-		mutable boxes : box list;
-		mutable final_exit : point
+		obstacles : RtreeObstacle.t;
+		people : RtreePeople.t;
+		id_list : int list;
+		boxes : box list;
+		final_exit : point
 	}
 
 let add_map_people map (people_list:Person.t list) =
@@ -272,16 +272,12 @@ let is_there_future_col_people m p futurepos =
     let r = p#radius in
     
     let nearest_obstacles = List.map snd (RtreeObstacle.find_mbr (point_mbr futurepos) m.obstacles) in
-    let box = (futurepos.x -. r, futurepos.x +. r, futurepos.y -. r, futurepos.y +. r) in
+    let box = (futurepos.x -. 2. *. r, futurepos.x +. 2. *. r, futurepos.y -. 2. *.r, futurepos.y +. 2. *. r) in
     let nearest_people = (List.map snd (RtreePeople.find_mbr box m.people)) in
-    Printf.printf "| %i " (List.length nearest_people); flush stdout;
 	min_dist_to_walls futurepos nearest_obstacles < p#radius ||
 	assume_once
 		(fun p0 ->
-			if Person.get_id p0 <> Person.get_id p then
-			    (Printf.printf "%f " (dist p0#point futurepos);
-				dist p0#point futurepos <= p0#radius +. p#radius)
-			else false
+			Person.get_id p0 <> Person.get_id p && dist p0#point futurepos <= p0#radius +. p#radius
 		)
 		nearest_people
 
@@ -295,6 +291,8 @@ let angle_factor = 0.5
 let update_person m id ~hop =
     let someone = RtreePeople.find_id id m.people in
     let p0 = someone#point in
+    
+    let new_0 = RtreePeople.remove_id id m.people in
 
     let hop_input =
     	let pos_out = get_exit m.boxes someone#point in
@@ -307,29 +305,31 @@ let update_person m id ~hop =
     		| false -> -. 1. in
     	Array.append (Array.map f (get_sensors_col someone m)) [|sign_float dteta|] in
         
-    someone#set_angle (someone#angle +. (hop#get_rule hop_input).(0) *. angle_factor);
+    let t = (someone#angle +. (hop#get_rule hop_input).(0) *. angle_factor) in
+
     let future_pos =
-        {x=p0.x +. pas *. cos someone#angle; y=p0.y +. pas *. sin someone#angle} in
+        {x = p0.x +. pas *. cos t; y = p0.y +. pas *. sin t} in    
     
-    if not (is_there_future_col_people m someone future_pos) then
+    if dist p0 (m.final_exit) < 5.*.someone#radius then
+        {m with
+            people = new_0;
+            id_list = List.filter (fun i -> i <> id) m.id_list
+        }
+    else
         (
-            let new_0 = RtreePeople.remove_id id m.people in            
-            someone#set_point future_pos;
-            let new_rtree_people = RtreePeople.insert someone new_0 in        
+            let new_rtree_people =
+                if not (is_there_future_col_people m someone future_pos) then
+                    (
+                        let a = new person future_pos t someone#get_id in
+                        RtreePeople.insert a new_0
+                    )
+                else
+                    m.people
+            in
             {m with people = new_rtree_people}
         )
-    else
-        m
-        (*(
-            let new_0 = RtreePeople.remove_id id m.people in            
-            let new_rtree_people = RtreePeople.insert someone new_0 in        
-            {m with people = new_rtree_people}
-        )*)
 
 
 
 let update_map m ~hop =
-    try
-        List.fold_left (fun map i -> update_person map i ~hop) m m.id_list
-    with
-        _ -> m
+    List.fold_left (fun map i -> update_person map i ~hop) m m.id_list

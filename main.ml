@@ -5,25 +5,14 @@ open Hopfield
 open Graphics2D
 open Primitives
 
-(* Déplacement à l'aide d'un réseau de Hopfield *)
 
-
-let remove_escaped m =
-    let func = fun p0 -> dist p0#point (m.final_exit) < 5.*.p0#radius in
-    let new_people, removed = RtreePeople.remove_by_condition func m.people in
-    let new_id_list = List.filter (fun i -> not (List.exists (fun p -> Person.get_id p = i) removed)) m.id_list in
-    {m with
-        people = new_people;
-        id_list =new_id_list
-    }
-	
 let iterate (m:map) ~hop ~display =
-	let m0 = update_map m ~hop in 
-	let m1 = remove_escaped m0 in
+	let m1 = update_map m ~hop in
 	if display then 
 	    (* Pause de 100 ms *)
 	    (wait 100; redraw m1);
 	m1
+
 
 
 let test_map ?(display=false) ?(max_time=200) map hop =
@@ -31,7 +20,7 @@ let test_map ?(display=false) ?(max_time=200) map hop =
 	    if RtreePeople.size m.people = 0 || n = 0 then
 	        m
 	    else
-	        (let m0 = iterate map ~hop ~display:false in loop m0 (n-1))
+	        (let m0 = update_map m ~hop in loop m0 (n-1))
 	in
 	    let rec loop_display m n polling =
 	        if RtreePeople.size m.people = 0 || n = 0 then
@@ -40,17 +29,17 @@ let test_map ?(display=false) ?(max_time=200) map hop =
     	        | status when status.keypressed ->
     	            (match parse_keypressed status.key with
     	                | Zoom dir ->
-    	                    (zoom_screen dir; let m0 = iterate map ~display ~hop in loop_display m0 (n-1) false)
+    	                    (zoom_screen dir; let m0 = iterate m ~display ~hop in loop_display m0 (n-1) false)
     	                | Move dir ->
-    	                    (move_screen dir; let m0 = iterate map ~display ~hop in loop_display m0 (n-1) false)
+    	                    (move_screen dir; let m0 = iterate m ~display ~hop in loop_display m0 (n-1) false)
     	                | NoDisplay ->
-    	                    (let m0 = iterate map ~display ~hop in loop m0 (n-1))
+    	                    (let m0 = iterate m ~display ~hop in loop m0 (n-1))
     	                | Quit ->
     	                    m
     	                | Nothing ->
-    	                    (let m0 = iterate map ~display ~hop in loop_display m0 (n-1) (not polling)))
+    	                    (let m0 = iterate m ~display ~hop in loop_display m0 (n-1) (not polling)))
     	        | _ -> 
-    			    (let m0 = iterate map ~display ~hop in loop_display m0 (n-1) true)
+    			    (let m0 = iterate m ~display ~hop in loop_display m0 (n-1) true)
 	in
 	    let last_map =
 	        (
@@ -63,20 +52,22 @@ let test_map ?(display=false) ?(max_time=200) map hop =
         RtreePeople.size last_map.people
 
 
+
 let fast_test_map ?(display=false) map neural_net =
 	let people_list =
-        [(new person {x=10.; y=18.}  (Random.float_range 0. 1.));
-         (new person {x=15.; y=13.}  (Random.float_range 0. 1.));
-         (new person {x=10.; y=10.}  (Random.float_range 0. 1.))]
+        [(new person {x=10.; y=18.}  (Random.float_range 0. 1.) 0);
+         (new person {x=15.; y=13.}  (Random.float_range 0. 1.) 0);
+         (new person {x=10.; y=10.}  (Random.float_range 0. 1.) 0)]
     in
     let m = add_map_people map people_list in
     test_map ~display m neural_net
-	
+
+
 let close_test_map map neural_net =
     let people_list =
-        [(new person {x=10.; y=15.}  (Random.float_range 0. 1.));
-         (new person {x=15.; y=13.}  (Random.float_range 0. 1.));
-         (new person {x=10.; y=10.}  (Random.float_range 0. 1.))]
+        [(new person {x=10.; y=15.}  (Random.float_range 0. 1.) 0);
+         (new person {x=15.; y=13.}  (Random.float_range 0. 1.) 0);
+         (new person {x=10.; y=10.}  (Random.float_range 0. 1.) 0)]
     in
     let m = add_map_people map people_list in
     test_map m neural_net
@@ -84,9 +75,10 @@ let close_test_map map neural_net =
 
 let deep_test ?(display=false) map neural_net =
     let people_list =
-        map_range 3 7 (fun i j -> new person {x=5.+.4.*.float_of_int i; y=5.+.4.*.float_of_int j}  (Random.float_range 0. 1.)) in
+        map_range 3 7 (fun i j -> new person {x=5.+.4.*.float_of_int i; y=5.+.4.*.float_of_int j}  (Random.float_range 0. 1.) 0) in
     let m = add_map_people map people_list in
 	test_map m neural_net ~display ~max_time:300
+
 	
 (*let final_test ?(display=false) map neural_net =
     map.people <- map_range 5 5 (fun i j -> new person {x=2.+.4.*.float_of_int i; y=2.+.4.*.float_of_int j}  (Random.float_range 0. 1.));
@@ -111,7 +103,8 @@ let _ =
 	let boxes = 
 		[
 			(fast_box 2. 2. 20. 42. 25. 10.);
-		    (fast_box 20. 2. 30. 42. 32. 28.);
+		    (fast_box 20. 2. 30. 25. 25. 28.);
+		    (fast_box 20. 25. 30. 42. 32. 28.);
 		    (fast_box 30. 2. 42. 42. 38. 10.)
 		] in
 	let my_map = 
@@ -158,19 +151,20 @@ let _ =
 
 	in
 
-	let hop = new Hopfield.t 20 4 1 Hopfield.step in
+	let hop = new Hopfield.t 12 4 1 Hopfield.step in
 	hop#init;
 
-    let best1 = HopfieldEvoluate.elect_one hop 2. 200 (fast_test_map ~display:true my_map) in
-    Printf.printf "%d\n" (fast_test_map my_map best1); flush stdout;
+    let best0 = HopfieldEvoluate.elect_one hop 1. 500 (fast_test_map my_map) in
+    Printf.printf "Passe 0 : %d\n" (fast_test_map my_map best0); flush stdout;
 
-    let best2 = HopfieldEvoluate.elect_one best1 2. 100 (close_test_map my_map) in
-    Printf.printf "%d\n" (fast_test_map my_map best2); flush stdout;
+    let best1 = HopfieldEvoluate.elect_one best0 1. 500 (fast_test_map my_map) in
+    Printf.printf "Passe 1 : %d\n" (fast_test_map my_map best1); flush stdout;
 
-    let best3 = HopfieldEvoluate.elect_one best2 1. 1 (deep_test my_map) in
-    Printf.printf "%d\n" (fast_test_map my_map best3); flush stdout;
+    let best2 = HopfieldEvoluate.elect_one best1 1. 1000 (close_test_map my_map) in
+    Printf.printf "Passe 2 : %d\n" (close_test_map my_map best2); flush stdout;
 
-	if fast_test_map my_map best3 < 2 then
+    let best3 = HopfieldEvoluate.elect_one best2 1. 50 (deep_test my_map) in
+    Printf.printf "Passe 3 : %d\n" (close_test_map my_map best3); flush stdout;
+
+	if fast_test_map my_map ~display:true best3 = 0 then
 		Printf.printf "%d\n" (deep_test ~display:true my_map best3)
-	else
-		Printf.printf "Désolé, je suis encore trop jeune pour toi.\n"
