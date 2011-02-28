@@ -1,20 +1,19 @@
 open Rtree
-(*open Graphics2D*)
 open Primitives
 open Unix
 
 
 let random_mbr () =
-    let x0 = Random.float_range 5. 25. in
-    let x1 = Random.float_range 5. 25. in
-    let y0 = Random.float_range 5. 25. in
-    let y1 = Random.float_range 5. 25. in
+    let x0 = Random.float_range 5. 25000. in
+    let x1 = Random.float_range 5. 25000. in
+    let y0 = Random.float_range 5. 25000. in
+    let y1 = Random.float_range 5. 25000. in
     min x0 x1, max x0 x1, min y0 y1, max y0 y1
     
 let random_mbr_small () =
-    let x0 = Random.float_range 5. 25. in
+    let x0 = Random.float_range 5. 25000. in
     let x1 = Random.float_range x0 (x0 +. 2.) in
-    let y0 = Random.float_range 5. 25. in
+    let y0 = Random.float_range 5. 25000. in
     let y1 = Random.float_range y0 (y0 +. 2.) in
     x0, x1, y0, y1
 
@@ -56,15 +55,6 @@ let random_rtree_small n0 =
     in
         aux RtreeTesting.empty n0
 
-(*let display_test rtree =
-    RtreeTesting.iter_all
-        display_mbr
-        (fun toto ->
-            set_color blue;display_mbr (Test.get_mbr toto);set_color black
-        )
-        
-    rtree*)
-
 let _ =
     Random.self_init ();
     (*auto_synchronize true;*)
@@ -77,8 +67,22 @@ let _ =
     in
     Printf.printf "Creating a R-tree with %i random element(s)\n" n;
     let tree = random_rtree_small n in
-    Printf.printf "Our R-tree is here !\n\n";
-    Printf.printf "R-tree size : %i\n" (RtreeTesting.size tree)
+
+    
+    let liste = RtreeTesting.to_list tree in
+    
+    
+    let box = 10., 12., 10., 15. in
+    
+    let t0 = (Unix.times ()).tms_utime in
+    let s0 = RtreeTesting.find_mbr box tree in
+    let t1 = (Unix.times ()).tms_utime in
+    let s1 = List.filter (fun e -> Mbr.intersect box (Test.get_mbr e)) liste in    
+    let t2 = (Unix.times ()).tms_utime in
+    
+    Printf.printf "%i   %f  %f\n" n (t2 -. t1) (t1 -. t0);
+    Printf.printf "%i %i" (List.length s0) (List.length s1)
+    
     
     (*Unix.sleep 1;
     Primitives.wait 1000;
