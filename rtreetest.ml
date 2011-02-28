@@ -38,15 +38,23 @@ end
 
 module RtreeTesting = Rtree(Test)
 
-let rec random_rtree = function
-    | 0 -> RtreeTesting.empty
-    | n ->
-        RtreeTesting.insert (Test.random_elem n) (random_rtree (n-1))
+let rec random_rtree n0 =
+    let rec aux acc = function
+        | 0 ->
+            acc
+        | n ->
+            aux (RtreeTesting.insert (Test.random_elem n) acc) (n-1)
+    in
+        aux RtreeTesting.empty n0
 
-let rec random_rtree_small = function
-    | 0 -> RtreeTesting.empty
-    | n ->
-        RtreeTesting.insert (Test.random_elem_small n) (random_rtree_small (n-1))
+let random_rtree_small n0 =
+    let rec aux acc = function
+        | 0 ->
+            acc
+        | n ->
+            aux (RtreeTesting.insert (Test.random_elem_small n) acc) (n-1)
+    in
+        aux RtreeTesting.empty n0
 
 (*let display_test rtree =
     RtreeTesting.iter_all
@@ -61,8 +69,16 @@ let _ =
     Random.self_init ();
     (*auto_synchronize true;*)
     
-    let tree = random_rtree_small 1000 in
-    Printf.printf "%i\n" (RtreeTesting.size tree)
+    let n =
+        if Array.length Sys.argv > 1 then
+            int_of_string (Sys.argv.(1))
+        else
+            1000
+    in
+    Printf.printf "Creating a R-tree with %i random element(s)\n" n;
+    let tree = random_rtree_small n in
+    Printf.printf "Our R-tree is here !\n\n";
+    Printf.printf "R-tree size : %i\n" (RtreeTesting.size tree)
     
     (*Unix.sleep 1;
     Primitives.wait 1000;

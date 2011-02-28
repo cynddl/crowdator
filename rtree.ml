@@ -108,14 +108,18 @@ struct
     (** Découpage **)
 
     let mbr_nodes ns =
-        if ns = [] then raise (Invalid_argument "Impossible de déterminer le mbr d'une liste vide");
+        if ns = [] then raise (Invalid_argument "Impossible de déterminer le mbr d'une liste vide from Rtree.mbr_nodes");
         Mbr.add_list (List.map fst ns)
     
     let mbr_tree = function
         | Empty -> Mbr.empty
         | Leaf f ->
+            if f = [] then
+                raise (Invalid_argument "Impossible de déterminer le mbr d'une liste vide from Rtree.mbr_tree");
             mbr_nodes f
         | Node ns ->
+            if ns = [] then
+                raise (Invalid_argument "Impossible de déterminer le mbr d'une liste vide from Rtree.mbr_tree");
             mbr_nodes ns
 
     let overlap list1 list2 =
@@ -129,6 +133,8 @@ struct
     (* L'algorithme développé ci-dessous n'est pas celui proposé originellement
        par Guttman *)
     let linear_split node =
+        if node = [] then
+            raise (Invalid_argument "Split failed (empty node) at Rtree.linear_fsplit");
         let l, r, b, t = mbr_nodes node in
         let rec aux = function
             | [] -> [], [], [], []
@@ -162,6 +168,7 @@ struct
             list_l, list_r
         else if max (List.length list_l) (List.length list_r) > max (List.length list_b) (List.length list_t) then
             list_b, list_t
+
         else begin
             if overlap list_l list_r < overlap list_b list_t then
                 (* split selon l'axe x *)
@@ -170,8 +177,29 @@ struct
                 (* split selon l'axe y *)
                 list_b, list_t
             else
-                (* split_smallest_coverage node ... *)
-                list_l, list_r (* DEBUG *)
+                (* C'est sans doute le cas où une des deux liste est vide dans chaque cas
+                   (L/R ; B/T) : il faut alors rechercher l'élément qui engloble tous les
+                   autres et l'extraire !
+                *)
+                (
+                    let biggest, smallest =
+                        if list_l = [] || list_r = [] then
+                            List.partition (fun ((xl, xh, yl, yh), _) -> xl = l && xh = r) node
+                        else if list_b = [] || list_t = [] then
+                            List.partition (fun ((xl, xh, yl, yh), _) -> yl = b && yh = t) node
+                        else
+                            list_l, list_r
+                    in
+                    
+                    (* ! DEBUG ! *)
+                    if biggest = [] || smallest = [] then
+                        (
+                            Printf.printf "(%i %i)" (List.length biggest) (List.length smallest);
+                            List.iter (fun ((x1,x2,y1,y2),_) -> Printf.printf "{%f %f %f %f} " x1 x2 y1 y2) node
+                        );
+
+                    biggest, smallest
+                )
         end
 
 
@@ -233,9 +261,11 @@ struct
 
         | Leaf f ->
             let new_elem = (mbr, e) :: f in
-            if List.length f + 1 > saturation_count then
+            if List.length f + 2  > saturation_count then
                 let a, b = split_node new_elem
                 in
+                    if a = [] || b = [] then
+                        Printf.printf "(%i, %i) " (List.length a) (List.length b);
                     (mbr_nodes a, Leaf a), (mbr_nodes b, Leaf b)
             else
                 (mbr_nodes new_elem, Leaf new_elem), empty_node
@@ -251,8 +281,15 @@ struct
                 Node [a; b]
     
     (* Insertion d'une liste d'objets : on les insère un par un dans un nouveau r-tree *)
-    let insert_list =
-        List.fold_right insert
+    let insert_list l e =
+        let rec aux acc = function
+            | [] -> acc
+            | hd :: tl -> aux (insert hd acc) tl
+        in
+        try
+            aux e l
+        with
+        | _-> failwith ("Insertion failed in Rtree.insert_list")
        
 
     (** Suppression d'éléments du R-tree **)
