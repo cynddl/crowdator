@@ -161,7 +161,7 @@ let _ =
 	let hop = new Hopfield.t 20 4 1 Hopfield.step in
 	hop#init;
 
-    let best1 = HopfieldEvoluate.elect_one hop 2. 200 (fast_test_map my_map) in
+    let best1 = HopfieldEvoluate.elect_one hop 2. 200 (fast_test_map ~display:true my_map) in
     Printf.printf "%d\n" (fast_test_map my_map best1); flush stdout;
 
     let best2 = HopfieldEvoluate.elect_one best1 2. 100 (close_test_map my_map) in

@@ -258,7 +258,7 @@ let is_there_col_people_id m p =
     let box = (p0.x -. 2. *. r, p0.x +. 2. *. r, p0.y -. 2. *. r, p0.y +. 2. *. r) in
     let nearest_people = (List.map snd (RtreePeople.find_mbr box m.people)) in
     
-    List.length nearest_obstacles > 0 || min_dist_to_walls p#point nearest_obstacles < p#radius ||
+    min_dist_to_walls p#point nearest_obstacles < p#radius ||
 	assume_once
 		(fun p0->
 			if p0#get_id <> p#get_id then
@@ -272,14 +272,15 @@ let is_there_future_col_people m p futurepos =
     let r = p#radius in
     
     let nearest_obstacles = List.map snd (RtreeObstacle.find_mbr (point_mbr futurepos) m.obstacles) in
-    let box = (futurepos.x -. 2. *. r, futurepos.x +. 2. *. r, futurepos.y -. 2. *. r, futurepos.y +. 2. *. r) in
+    let box = (futurepos.x -. r, futurepos.x +. r, futurepos.y -. r, futurepos.y +. r) in
     let nearest_people = (List.map snd (RtreePeople.find_mbr box m.people)) in
-    
+    Printf.printf "| %i " (List.length nearest_people); flush stdout;
 	min_dist_to_walls futurepos nearest_obstacles < p#radius ||
 	assume_once
 		(fun p0 ->
-			if p0#get_id <> p#get_id then
-				dist p0#point futurepos <= p0#radius +. p#radius
+			if Person.get_id p0 <> Person.get_id p then
+			    (Printf.printf "%f " (dist p0#point futurepos);
+				dist p0#point futurepos <= p0#radius +. p#radius)
 			else false
 		)
 		nearest_people

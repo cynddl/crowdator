@@ -298,8 +298,10 @@ struct
     let remove_id_list id =
         let rec aux = function
             | [] -> []
-            | (m, e) :: tl when Element.get_id e = id -> tl
-            | s :: tl -> s :: aux tl
+            | (m, e) :: tl when Element.get_id e = id ->
+                tl
+            | s :: tl ->
+                s :: aux tl
         in
             aux
 
@@ -389,7 +391,7 @@ struct
             | Empty ->
                 ()
             | Leaf f ->
-                List.iter (fun (m, e) -> func_mbr (Element.get_mbr e); func_leaf e) f
+                List.iter (fun (m, e) -> func_mbr m; func_mbr (Element.get_mbr e); func_leaf e) f
             | Node n ->
                 List.iter (fun (m, e) -> func_mbr m; aux e) n
         in
