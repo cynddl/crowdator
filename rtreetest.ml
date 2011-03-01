@@ -1,5 +1,6 @@
 open Rtree
 open Primitives
+open Timetester
 open Unix
 
 
@@ -12,9 +13,9 @@ let random_mbr () =
     
 let random_mbr_small () =
     let x0 = Random.float_range 5. 25000. in
-    let x1 = Random.float_range x0 (x0 +. 2.) in
+    let x1 = Random.float_range x0 (x0 +. 0.01) in
     let y0 = Random.float_range 5. 25000. in
-    let y1 = Random.float_range y0 (y0 +. 2.) in
+    let y1 = Random.float_range y0 (y0 +. 0.01) in
     x0, x1, y0, y1
 
 
@@ -57,7 +58,6 @@ let random_rtree_small n0 =
 
 let _ =
     Random.self_init ();
-    (*auto_synchronize true;*)
     
     let n =
         if Array.length Sys.argv > 1 then
@@ -72,16 +72,20 @@ let _ =
     let liste = RtreeTesting.to_list tree in
     
     
-    let box = 10., 12., 10., 15. in
+    let box = 10., 100., 10., 100. in
     
-    let t0 = (Unix.times ()).tms_utime in
-    let s0 = RtreeTesting.find_mbr box tree in
-    let t1 = (Unix.times ()).tms_utime in
-    let s1 = List.filter (fun e -> Mbr.intersect box (Test.get_mbr e)) liste in    
-    let t2 = (Unix.times ()).tms_utime in
+    let f0 () =
+        List.length (RtreeTesting.find_mbr box tree)
+    in
     
-    Printf.printf "%i   %f  %f\n" n (t2 -. t1) (t1 -. t0);
-    Printf.printf "%i %i" (List.length s0) (List.length s1)
+    let f1 () =
+        List.length (List.filter (fun e -> Mbr.intersect box (Test.get_mbr e)) liste)
+    in
+    
+    let s0 = Timetester.print_function_time_with_result ~label:"R-tree" f0 in
+    let s1 = Timetester.print_function_time_with_result ~label:"Liste " f1 in
+    
+    Printf.printf "Rtree : %i -- Liste : %i\n" s0 s1
     
     
     (*Unix.sleep 1;
