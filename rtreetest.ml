@@ -38,16 +38,10 @@ end
 
 module RtreeTesting = Rtree(Test)
 
-let rec random_rtree n0 =
-    let rec aux acc = function
-        | 0 ->
-            acc
-        | n ->
-            aux (RtreeTesting.insert (Test.random_elem n) acc) (n-1)
-    in
-        aux RtreeTesting.empty n0
 
-let random_rtree_small n0 =
+
+
+let random_rtree n0 =
     let rec aux acc = function
         | 0 ->
             acc
@@ -55,6 +49,19 @@ let random_rtree_small n0 =
             aux (RtreeTesting.insert (Test.random_elem_small n) acc) (n-1)
     in
         aux RtreeTesting.empty n0
+        
+let random_rtree_and_list n0 =
+    let rec aux acc = function
+        | 0 ->
+            acc
+        | n ->
+            let new_elem = Test.random_elem_small n in
+            let tree, liste = acc in
+            aux ((RtreeTesting.insert new_elem tree) , new_elem :: liste) (n-1)
+    in
+        aux (RtreeTesting.empty, []) n0
+
+
 
 let _ =
     Random.self_init ();
@@ -65,11 +72,9 @@ let _ =
         else
             1000
     in
-    Printf.printf "Creating a R-tree with %i random element(s)\n" n;
-    let tree = random_rtree_small n in
-
     
-    let liste = RtreeTesting.to_list tree in
+    Printf.printf "Creating a R-tree with %i random element(s)\n" n;
+    let tree, liste = random_rtree_and_list n in
     
     
     let box = 10., 100., 10., 100. in
