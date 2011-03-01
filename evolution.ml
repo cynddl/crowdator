@@ -27,6 +27,8 @@ module type MUTATOR =
 module Evoluate = functor (M : MUTATOR) ->
 	struct
 	
+	    (* Génère une population autour d'un individu donnée *)
+	    
 		let generate_population one f =
 		    let rec aux acc = function
 			    | 0 -> acc
@@ -34,7 +36,13 @@ module Evoluate = functor (M : MUTATOR) ->
 		    in
 		        aux []
 
-		(* On minimise le stathme *)
+
+		(*
+		    Recherche d'une meilleure élément d'une population : celui qui minimise
+		    le stathme passé en entrée. Ce dernier est toujours positif, ce qui permet
+		    quand on rencontre un élément de stathme 0 d'arrêter la recherche.
+		*)
+		
 		let choose_best (stathme: M.t->int) pop =
 		    let rec aux = function
 			    | [] -> failwith "Empty population from Evoluate.choose_best"
@@ -56,6 +64,12 @@ module Evoluate = functor (M : MUTATOR) ->
 			            )
 			in
 			    fst (aux pop)
+		
+		
+		(*
+		    Combine les deux fonctions précédentes en une seule : sélection d'une
+		    population et recherche du meilleur élément.
+		*)
 		
 		let elect_one one f nmax func =
 		    let pop = generate_population one f nmax in

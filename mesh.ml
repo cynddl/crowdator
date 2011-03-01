@@ -14,11 +14,16 @@ object (s)
 	method get_weights = weights
 	method set_weights (w:MatrixHopfield.t) = weights <- w
 
+
 	method get_state = etats
 	method set_state e = etats <-e
 
+
 	method get_activation_func = activation_func
 
+
+    (* Met à jour de manière itérative les états et les poids du mesh. *)
+    
 	method randomise mini maxi =
 		weights <- MatrixHopfield.random_range n n mini maxi;
 
@@ -26,8 +31,10 @@ object (s)
 			etats.(i).(0) <- 2. *. float_of_int (Random.int 2) -. 1.
 		done
 
+
 	(* Mise à jour des poids par règle de Hebb *)
 	(* La matrice reste bien symétrique ! *)
+
 	method private update_weights =
 		for i = 0 to n-1 do
 			for j = 0 to n-1 do
@@ -36,11 +43,14 @@ object (s)
 			done
 		done
 
+
 	(* Mise à jour synchrone des états *)
+	
 	method update_states =
 		let mat = Matrix.mult weights etats in
 		Matrix.apply mat activation_func;
 		etats <- mat
+
 
 	method process input =
 		for i = 0 to Array.length input - 1 do
@@ -50,10 +60,13 @@ object (s)
 end
 
 
+(* Affiche un mesh : matrice des poids et matrice unicolonne des états *)
 let print_mesh mesh =
 	Matrix.print mesh#get_weights;
 	Matrix.print mesh#get_state
 
+
+(* Copie un mesh : la copie des états importe peu *)
 let copy m =
 	let weights = Matrix.clone m#get_weights in
 	let n = Array.length weights in

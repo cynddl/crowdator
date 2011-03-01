@@ -55,22 +55,20 @@ let test_map ?(display=false) ?(max_time=200) map hop =
 
 let fast_test_map ?(display=false) map neural_net =
 	let people_list =
-        [(new person {x=10.; y=18.}  (Random.float_range 0. 1.) 0);
-         (new person {x=15.; y=13.}  (Random.float_range 0. 1.) 0);
-         (new person {x=10.; y=10.}  (Random.float_range 0. 1.) 0)]
+        [(new person {x=10.; y=18.}  (Random.float_range 0. 1.) 0)]
     in
     let m = add_map_people map people_list in
     test_map ~display m neural_net
 
 
-let close_test_map map neural_net =
+let close_test_map ?(display=false) map neural_net =
     let people_list =
-        [(new person {x=10.; y=15.}  (Random.float_range 0. 1.) 0);
-         (new person {x=15.; y=13.}  (Random.float_range 0. 1.) 0);
+        [(new person {x=10.; y=14.}  (Random.float_range 0. 1.) 0);
+         (new person {x=13.; y=12.}  (Random.float_range 0. 1.) 0);
          (new person {x=10.; y=10.}  (Random.float_range 0. 1.) 0)]
     in
     let m = add_map_people map people_list in
-    test_map m neural_net
+    test_map ~display m neural_net
 
 
 let deep_test ?(display=false) map neural_net =
@@ -80,12 +78,16 @@ let deep_test ?(display=false) map neural_net =
 	test_map m neural_net ~display ~max_time:300
 
 	
-(*let final_test ?(display=false) map neural_net =
-    map.people <- map_range 5 5 (fun i j -> new person {x=2.+.4.*.float_of_int i; y=2.+.4.*.float_of_int j}  (Random.float_range 0. 1.));
-    test_map map neural_net ~display ~max_time:300
+let final_test ?(display=false) map neural_net =
+    let people_list =
+        map_range 5 5 (fun i j -> new person {x=2.+.4.*.float_of_int i; y=2.+.4.*.float_of_int j}  (Random.float_range 0. 1.) 0) in
+    let m = add_map_people map people_list in
+    test_map m neural_net ~display ~max_time:300
+
 	
 let blank_test ?(display=false) map neural_net =
-    test_map map neural_net ~display ~max_time:300*)
+    test_map map neural_net ~display ~max_time:300
+
 
 let _ =
 	Random.self_init ();
@@ -103,8 +105,9 @@ let _ =
 	let boxes = 
 		[
 			(fast_box 2. 2. 20. 42. 25. 10.);
-		    (fast_box 20. 2. 30. 25. 25. 28.);
-		    (fast_box 20. 25. 30. 42. 32. 28.);
+		    (*(fast_box 20. 2. 30. 25. 25. 28.);
+		    (fast_box 20. 25. 30. 42. 32. 28.);*)
+		    (fast_box 20. 2. 30. 42. 32. 28.);
 		    (fast_box 30. 2. 42. 42. 38. 10.)
 		] in
 	let my_map = 
@@ -128,8 +131,8 @@ let _ =
 	        fast_wall 50. 0. 50. 50.;
 	        (* Murs intérieurs *)
 	        fast_wall 30. 0. 30. 20.;
-	        fast_wall 30. 25. 30. 50.;
-	        fast_wall 25. 21. 25. 24.
+	        fast_wall 30. 25. 30. 50.(*;
+	        fast_wall 25. 21. 25. 24.*)
 	    ]
 	in
 	let boxes2 = 
@@ -151,20 +154,36 @@ let _ =
 
 	in
 
-	let hop = new Hopfield.t 12 4 1 Hopfield.step in
+	let hop = new Hopfield.t 14 4 1 Hopfield.step in
 	hop#init;
 
-    let best0 = HopfieldEvoluate.elect_one hop 1. 500 (fast_test_map my_map) in
-    Printf.printf "Passe 0 : %d\n" (fast_test_map my_map best0); flush stdout;
+    let best0 = HopfieldEvoluate.elect_one hop 2. 1000 (fast_test_map my_map) in
+    Printf.printf "Passe 0 : %d\n" (fast_test_map  my_map best0); flush stdout;
 
-    let best1 = HopfieldEvoluate.elect_one best0 1. 500 (fast_test_map my_map) in
-    Printf.printf "Passe 1 : %d\n" (fast_test_map my_map best1); flush stdout;
+    let best1 = HopfieldEvoluate.elect_one best0 1. 100 (close_test_map my_map) in
+    Printf.printf "Passe 1 : %d\n" (close_test_map my_map best1); flush stdout;
 
-    let best2 = HopfieldEvoluate.elect_one best1 1. 1000 (close_test_map my_map) in
+    let best2 = HopfieldEvoluate.elect_one best1 1. 100 (close_test_map my_map) in
     Printf.printf "Passe 2 : %d\n" (close_test_map my_map best2); flush stdout;
-
-    let best3 = HopfieldEvoluate.elect_one best2 1. 50 (deep_test my_map) in
+    
+    let best3 = HopfieldEvoluate.elect_one best2 1. 1000 (close_test_map my_map) in
     Printf.printf "Passe 3 : %d\n" (close_test_map my_map best3); flush stdout;
+    
+    let best4 = HopfieldEvoluate.elect_one best3 1. 1000 (close_test_map my_map) in
+    Printf.printf "Passe 4 : %d\n" (close_test_map my_map best4); flush stdout;
+    
+    let best5 = HopfieldEvoluate.choose_best (deep_test my_map)
+        [best0; best1; best2; best3; best4] in
+    
+    
+    let best6 = HopfieldEvoluate.elect_one best5 1. 20 (deep_test my_map) in
+    Printf.printf "Passe 5 : %d\n" (deep_test my_map best6); flush stdout;
+    Printf.printf "Passe 5 : %d\n" (close_test_map my_map best6); flush stdout;
+    
 
-	if fast_test_map my_map ~display:true best3 = 0 then
-		Printf.printf "%d\n" (deep_test ~display:true my_map best3)
+
+	if close_test_map my_map best6 = 0 then
+	    (
+	        Printf.printf "%d\n" (final_test ~display:true final_map best6);
+		    Printf.printf "%d\n" (deep_test ~display:true my_map best6)
+		)

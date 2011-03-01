@@ -1,17 +1,30 @@
 (* Gestion des évenements / Liens utilisateur - programme*)
 
 
-(* Pour les mouvements de l'écran *)
+(* Directions de déplacement de l'écran *)
+
 type direction =
     | Up
     | Down
     | Right
     | Left
 
+
+(* Zoom avant et arrière *)
+
 type zoom_type =
     | In
     | Out
     
+
+(*
+    Actions possibles :
+     - celles liées à l'écran (déplacement de la zone active)
+     - fermeture du programme
+     - arrêt de l'affichage (passage en mode non-graphique)
+     - aucune action
+*)
+
 type action =
     | Move of direction
     | Zoom of zoom_type
@@ -19,6 +32,11 @@ type action =
     | NoDisplay
     | Nothing
 
+
+(*
+    Renvoie l'action associée à une touche du clavier. Dans le cas où la touche
+    ne sert à "rien", l'action est Nothing
+*)
 
 let parse_keypressed = function
     | 'z' -> Move(Up)
