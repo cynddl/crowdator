@@ -373,15 +373,13 @@ let update_person m id ~hop =
     else
         (
             (* Sinon on effectue, si possible, le déplacement *)
-            let new_rtree_people =
+            let a =
                 if not (is_there_future_col_people m someone future_pos) then
-                    (
-                        let a = new person future_pos t someone#get_id in
-                        RtreePeople.insert a new_0
-                    )
+                    new person future_pos t someone#get_id
                 else
-                    m.people
-            in
+                    new person p0 t someone#get_id in
+            
+            let new_rtree_people = RtreePeople.insert a new_0 in
             {m with people = new_rtree_people}
         )
 

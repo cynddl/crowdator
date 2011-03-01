@@ -2,10 +2,14 @@ open Primitives
 
 type t = float array array
 
+
 (* Args: nb de lignes, ~ de colonnes, et élément principal *)
+
 let make_matrix = Array.make_matrix
 
+
 (* Génère une matrice aléatoire de floats *)
+
 let random h w max =
 	Array.init h (fun _ ->
 		Array.init w (fun _ ->
@@ -13,13 +17,18 @@ let random h w max =
 		)
 	)
 
+
 (* Applique une fonction à tous les éléments d'une matrice. TRANSFORMATION ! *)
+
 let apply mat f =
 	for i = 0 to (Array.length mat) - 1 do
 		for j = 0 to (Array.length mat.(i)) - 1 do
 			mat.(i).(j) <- f (mat.(i).(j))
 		done
 	done
+
+
+(* Copie une matrice donnée *)
 
 let clone mat =
 	let n = Array.length mat in
@@ -35,12 +44,16 @@ let map mat f =
 		)
 	)
 
+
 (* Transforme un vecteur en matrice colonne *)
+
 let make_unicol x =
 	let n = Array.length x in
 	Array.init n (fun i -> Array.make 1 x.(i))
 
+
 (* Multiplication naive *)
+
 let mult (a:t) (b:t) =
 	let h1,h2,w1,w2 = Array.length a, Array.length b, Array.length a.(0), Array.length b.(0) in
 	assert (w1 == h2);
@@ -55,7 +68,10 @@ let mult (a:t) (b:t) =
 		done
 	done;
 	mat
- 
+
+
+(* Affiche une matrice sur la sortie standart *)
+
 let print mat =
 	let h = Array.length mat in
 	let w = Array.length mat.(0) in
@@ -68,7 +84,9 @@ let print mat =
 	done;
 	Printf.printf "%s" !s
 
+
 (* Pas de distribution gaussienne pour l'instant ... *)
 (* La fonction map pour des matrices renvoie ici une NOUVELLE matrice *)
+
 let mutate m factor =
 	map m (fun a -> a +. Random.float_range (-.factor) factor)
