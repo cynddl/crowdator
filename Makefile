@@ -16,7 +16,7 @@ prof:
 # Devrait également fonctionner sous debian/ubuntu (changer le préfixe 'i486-mingw32-' par 'i586-mingw32msvc-' et installer 'minw32-ocaml')
 win32:
 	ocamlbuild -libs graphics,unix -no-links -ocamlc i486-mingw32-ocamlc -ocamlopt i486-mingw32-ocamlopt main.native
-	cp _build/main.native camlbee.exe
+	cp _build/main.native crowdator.exe
 
 .PHONY: clean
 
