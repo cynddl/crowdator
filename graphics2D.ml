@@ -1,5 +1,7 @@
 include Graphics
 
+open Png
+
 open Dataset
 open Event
 open Primitives
@@ -78,17 +80,17 @@ let display_person (p0:person) map =
 	display_circle p p0#radius;
 
 	(*Direction du bonhomme*)
-	draw_line p (add_vect p (make_vect p0#sensors_radius p0#angle));
+	draw_line p (add_vect p (make_vect p0#sensors_radius p0#angle))(*;*)
 
 	(* Affichage des senseurs *)
-	Array.iter2
+	(*Array.iter2
 		(fun s b ->
 			if b then set_color blue;
-			display_point s;
+			display_point s;Ò
 			set_color black
 		)
 		p0#get_sensors
-		(get_sensors_col p0 map)
+		(get_sensors_col p0 map)*)
 
 
 
@@ -108,7 +110,7 @@ let rec display_people map =
     let aux_display p =
             display_person p map
     in
-    RtreePeople.iter_all (fun m -> set_color blue;display_mbr m; set_color black) aux_display map.people
+    RtreePeople.iter(*_all (fun m -> set_color blue;display_mbr m; set_color black)*) aux_display map.people
 
 
 
@@ -149,7 +151,6 @@ let start_display =
 	open_graph "";
 	(* Pour éviter le clignotement *)
 	auto_synchronize false
-	
-	
-let redraw m =
-	clear_graph (); display_map m
+
+let redraw m ?(debug=false)=
+	if not debug then clear_graph (); display_map m

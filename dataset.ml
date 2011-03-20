@@ -83,8 +83,8 @@ let dist_to_wall c w =
 
 class person (_p:point) (_t:float) _id =
 	let r = 1. in
-	let sensors_r = 2. in
-	let sensors_gap = 1.5 in
+	let sensors_r = 2.5 in
+	let sensors_gap = 1. in
 	
 	object (s)
 		val mutable p = _p

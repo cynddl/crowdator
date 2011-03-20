@@ -6,16 +6,16 @@ open Graphics2D
 open Primitives
 
 
-let iterate (m:map) ~hop ~display =
+let iterate (m:map) ~hop ~display ~debug=
 	let m1 = update_map m ~hop in
 	if display then 
 	    (* Pause de 100 ms *)
-	    (wait 100; redraw m1);
+	    (wait 100; redraw ~debug m1);
 	m1
 
 
 
-let test_map ?(display=false) ?(max_time=200) map hop =
+let test_map ?(display=false) ?(debug=false) ?(max_time=200) map hop =
 	let rec loop m n =
 	    if RtreePeople.size m.people = 0 || n = 0 then
 	        m
@@ -29,17 +29,18 @@ let test_map ?(display=false) ?(max_time=200) map hop =
     	        | status when status.keypressed ->
     	            (match parse_keypressed status.key with
     	                | Zoom dir ->
-    	                    (zoom_screen dir; let m0 = iterate m ~display ~hop in loop_display m0 (n-1) false)
+    	                    (zoom_screen dir; let m0 = iterate m ~display ~debug ~hop in loop_display m0 (n-1) false)
     	                | Move dir ->
-    	                    (move_screen dir; let m0 = iterate m ~display ~hop in loop_display m0 (n-1) false)
+    	                    (move_screen dir; let m0 = iterate m ~display ~debug ~hop in loop_display m0 (n-1) false)
     	                | NoDisplay ->
-    	                    (let m0 = iterate m ~display ~hop in loop m0 (n-1))
+    	                    (let m0 = iterate m ~display ~debug ~hop in loop m0 (n-1))
     	                | Quit ->
     	                    m
     	                | Nothing ->
-    	                    (let m0 = iterate m ~display ~hop in loop_display m0 (n-1) (not polling)))
+    	                    (let m0 = iterate m ~display ~debug ~hop in loop_display m0 (n-1) (not polling)))
     	        | _ -> 
-    			    (let m0 = iterate m ~display ~hop in loop_display m0 (n-1) true)
+    			    (let m0 = iterate m ~display ~debug
+    			         ~hop in loop_display m0 (n-1) true)
 	in
 	    let last_map =
 	        (
@@ -87,6 +88,14 @@ let final_test ?(display=false) map neural_net =
 	
 let blank_test ?(display=false) map neural_net =
     test_map map neural_net ~display ~max_time:300
+
+let mini_test ?(display=false) ?(debug=false) map neural_net =
+    let people_list =
+        [(new person {x=10.; y=6.}  (Random.float_range 0. 1.) 0)]
+    in
+    let m = add_map_people map people_list in
+    test_map ~display ~debug m neural_net
+
 
 
 let _ =
@@ -151,10 +160,42 @@ let _ =
 	        id_list = [];
 	        final_exit = {x=45.; y=25.}
 	    }
+	in
+	
+	let mini_walls =
+	    [
+	        fast_wall 0. 0. 50. 0.;
+	        fast_wall 0. 0. 0. 50.;
+	        fast_wall 0. 50. 50. 50.;
+	        fast_wall 50. 0. 50. 50.;
+	        fast_wall 20. 15. 20. 35.;
+	        fast_wall 25. 15. 25. 35.;
+	        fast_wall 20. 15. 25. 15.;
+	        fast_wall 20. 35. 25. 35.;
+	        
+	        fast_wall 30. 10. 30. 30.;
+	        fast_wall 35. 10. 35. 30.;
+	        fast_wall 30. 10. 35. 10.;
+	        fast_wall 30. 30. 35. 30.
+	    ]
+	in
+		
+	let mini_map =
+	    {
+	        w = 50;
+	        h = 50;
+	        obstacles = RtreeObstacle.insert_list (fast_make_obstacle_list mini_walls) RtreeObstacle.Empty;
+	        boxes = [fast_box 0. 0. 50. 50. 45. 25.];
+	        people = RtreePeople.Empty;
+	        id_list = [];
+	        final_exit = {x=45.; y=25.}
+	    }
+	
+	
 
 	in
 
-	let hop = new Hopfield.t 14 4 1 Hopfield.step in
+	let hop = new Hopfield.t 12 4 1 Hopfield.step in
 	hop#init;
 
     let best0 = HopfieldEvoluate.elect_one hop 2. 1000 (fast_test_map my_map) in
@@ -169,21 +210,22 @@ let _ =
     let best3 = HopfieldEvoluate.elect_one best2 1. 1000 (close_test_map my_map) in
     Printf.printf "Passe 3 : %d\n" (close_test_map my_map best3); flush stdout;
     
-    let best4 = HopfieldEvoluate.elect_one best3 1. 1000 (close_test_map my_map) in
-    Printf.printf "Passe 4 : %d\n" (close_test_map my_map best4); flush stdout;
-    
-    let best5 = HopfieldEvoluate.choose_best (deep_test my_map)
+    let best4 = HopfieldEvoluate.elect_one best3 1. 1000 (mini_test mini_map) in
+    Printf.printf "Passe 4 : %d\n" (mini_test mini_map best4); flush stdout;
+
+    let best5 = HopfieldEvoluate.choose_best (mini_test mini_map)
         [best0; best1; best2; best3; best4] in
     
     
-    let best6 = HopfieldEvoluate.elect_one best5 1. 20 (deep_test my_map) in
+    let best6 = HopfieldEvoluate.elect_one best5 1. 100 (deep_test my_map) in
     Printf.printf "Passe 5 : %d\n" (deep_test my_map best6); flush stdout;
     Printf.printf "Passe 5 : %d\n" (close_test_map my_map best6); flush stdout;
     
-
-
+    (*Printf.printf "%d\n" (mini_test ~display:true ~debug:true mini_map best5);
+    wait 10000;Unix.sleep 10*)
+    
 	if close_test_map my_map best6 = 0 then
 	    (
-	        Printf.printf "%d\n" (final_test ~display:true final_map best6);
-		    Printf.printf "%d\n" (deep_test ~display:true my_map best6)
+	        Printf.printf "%d\n" (deep_test my_map best6);
+	        Printf.printf "%d\n" (final_test final_map best6)
 		)
