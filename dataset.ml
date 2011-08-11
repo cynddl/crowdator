@@ -334,8 +334,8 @@ let is_there_future_col_people m p futurepos =
     Les personnes se déplacent les unes après les autres.
 **)
 
-let pas = 0.5
-let angle_factor = 0.5
+let pas = 0.2
+let angle_factor = 0.2
 
 
 (* Mise à jour pour une seule personne *)

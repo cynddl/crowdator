@@ -1,6 +1,5 @@
 include Graphics
 
-open Png
 
 open Dataset
 open Event

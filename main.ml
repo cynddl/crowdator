@@ -10,12 +10,12 @@ let iterate (m:map) ~hop ~display ~debug=
 	let m1 = update_map m ~hop in
 	if display then 
 	    (* Pause de 100 ms *)
-	    (wait 100; redraw ~debug m1);
+	    (wait 50; redraw ~debug m1);
 	m1
 
 
 
-let test_map ?(display=false) ?(debug=false) ?(max_time=200) map hop =
+let test_map ?(display=false) ?(debug=false) ?(max_time=400) map hop =
 	let rec loop m n =
 	    if RtreePeople.size m.people = 0 || n = 0 then
 	        m
@@ -76,7 +76,7 @@ let deep_test ?(display=false) map neural_net =
     let people_list =
         map_range 3 7 (fun i j -> new person {x=5.+.4.*.float_of_int i; y=5.+.4.*.float_of_int j}  (Random.float_range 0. 1.) 0) in
     let m = add_map_people map people_list in
-	test_map m neural_net ~display ~max_time:300
+	test_map m neural_net ~display ~max_time:800
 
 	
 let final_test ?(display=false) map neural_net =
@@ -91,7 +91,11 @@ let blank_test ?(display=false) map neural_net =
 
 let mini_test ?(display=false) ?(debug=false) map neural_net =
     let people_list =
-        [(new person {x=10.; y=6.}  (Random.float_range 0. 1.) 0)]
+        [(new person {x=10.; y=6.}  (Random.float_range 0. 1.) 0);
+         (new person {x=15.; y=6.}  (Random.float_range 0. 1.) 0);
+         (new person {x=10.; y=12.}  (Random.float_range 0. 1.) 0);
+         (new person {x=5.; y=6.}  (Random.float_range 0. 1.) 0);
+         (new person {x=5.; y=12.}  (Random.float_range 0. 1.) 0)]
     in
     let m = add_map_people map people_list in
     test_map ~display ~debug m neural_net
@@ -198,34 +202,35 @@ let _ =
 	let hop = new Hopfield.t 12 4 1 Hopfield.step in
 	hop#init;
 
-    let best0 = HopfieldEvoluate.elect_one hop 2. 1000 (fast_test_map my_map) in
+    let best0 = HopfieldEvoluate.elect_one hop 4. 1000 (fast_test_map my_map) in
     Printf.printf "Passe 0 : %d\n" (fast_test_map  my_map best0); flush stdout;
 
-    let best1 = HopfieldEvoluate.elect_one best0 1. 100 (close_test_map my_map) in
+    let best1 = HopfieldEvoluate.elect_one best0 3. 1000 (close_test_map my_map) in
     Printf.printf "Passe 1 : %d\n" (close_test_map my_map best1); flush stdout;
 
-    let best2 = HopfieldEvoluate.elect_one best1 1. 100 (close_test_map my_map) in
-    Printf.printf "Passe 2 : %d\n" (close_test_map my_map best2); flush stdout;
+    let best2 = HopfieldEvoluate.elect_one best1 2. 1000 (mini_test mini_map) in
+    Printf.printf "Passe 2 : %d\n" (mini_test mini_map best2); flush stdout;
     
-    let best3 = HopfieldEvoluate.elect_one best2 1. 1000 (close_test_map my_map) in
-    Printf.printf "Passe 3 : %d\n" (close_test_map my_map best3); flush stdout;
+    let best3 = HopfieldEvoluate.elect_one best2 1. 100 (mini_test mini_map) in
+    Printf.printf "Passe 3 : %d\n" (mini_test my_map best3); flush stdout;
     
-    let best4 = HopfieldEvoluate.elect_one best3 1. 1000 (mini_test mini_map) in
+    let best4 = HopfieldEvoluate.elect_one best3 0.5 100 (mini_test mini_map) in
     Printf.printf "Passe 4 : %d\n" (mini_test mini_map best4); flush stdout;
 
     let best5 = HopfieldEvoluate.choose_best (mini_test mini_map)
         [best0; best1; best2; best3; best4] in
     
     
-    let best6 = HopfieldEvoluate.elect_one best5 1. 100 (deep_test my_map) in
-    Printf.printf "Passe 5 : %d\n" (deep_test my_map best6); flush stdout;
-    Printf.printf "Passe 5 : %d\n" (close_test_map my_map best6); flush stdout;
+    (*let best6 = HopfieldEvoluate.elect_one best5 1. 100 (deep_test my_map) in*)
+    (*Printf.printf "Passe 5 : %d\n" (deep_test my_map ~display:true best6); flush stdout;
+    Printf.printf "Passe 5 : %d\n" (close_test_map my_map ~display:true best6); flush stdout;*)
     
-    (*Printf.printf "%d\n" (mini_test ~display:true ~debug:true mini_map best5);
-    wait 10000;Unix.sleep 10*)
+    Printf.printf "%d\n" (mini_test ~display:true ~debug:false  mini_map best5);
+    Printf.printf "%d\n" (deep_test ~display:false  my_map best5);
+    wait 10000;Unix.sleep 10
     
-	if close_test_map my_map best6 = 0 then
+	(*if close_test_map my_map best6 = 0 then
 	    (
 	        Printf.printf "%d\n" (deep_test my_map best6);
 	        Printf.printf "%d\n" (final_test final_map best6)
-		)
+		)*)

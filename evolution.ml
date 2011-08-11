@@ -1,6 +1,6 @@
 (**
   Module permettant de construire un individu plus évolué par algorithme génétique.
-  Le but est d'augment le degré d'adaptation (fitness) par sélection, mutation et reproduction.
+  Le but est d'augmenter le degré d'adaptation (fitness) par sélection, mutation et reproduction.
   
   L'algorithme générale est de la forme suivante :
    - génération aléatoire via generate_population, autour d'un individu
